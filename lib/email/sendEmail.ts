@@ -1,4 +1,4 @@
-import { resend, FROM_ADDRESS, APP_URL } from '@/lib/email/resend';
+import { sendMail, FROM_ADDRESS, APP_URL } from '@/lib/email/gmail';
 import { renderTemplate } from '@/lib/email/template';
 import { signUnsubscribeToken } from '@/lib/email/unsubscribeToken';
 import type { INotificationPrefs } from '@/lib/models/User';
@@ -51,12 +51,7 @@ export async function sendEmail(
   });
 
   try {
-    await resend.emails.send({
-      from: FROM_ADDRESS,
-      to,
-      subject,
-      html,
-    });
+    await sendMail({ from: FROM_ADDRESS, to, subject, html });
     return { ok: true };
   } catch (err) {
     console.error('[sendEmail] Failed to send email:', err);

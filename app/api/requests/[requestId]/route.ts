@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { Types } from 'mongoose';
-import { Resend } from 'resend';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import BookingRequest from '@/lib/models/BookingRequest';
 import User from '@/lib/models/User';
+import { sendMail, FROM_ADDRESS } from '@/lib/email/gmail';
 
 export const runtime = 'nodejs';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET(
   _req: Request,
@@ -113,8 +111,8 @@ export async function PATCH(
         </div>
       `;
 
-      await resend.emails.send({
-        from: 'VerityFlow <noreply@verityflow.com>',
+      await sendMail({
+        from: FROM_ADDRESS,
         to: request.email,
         subject: `${user.businessName} confirmed your request!`,
         html,

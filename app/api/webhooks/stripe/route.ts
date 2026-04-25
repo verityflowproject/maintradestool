@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import type Stripe from 'stripe';
 import { stripe, planFromPriceId, getSubPeriodEnd } from '@/lib/stripe';
 import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
+import { sendMail, FROM_ADDRESS } from '@/lib/email/gmail';
 import { subscriptionCancelledTemplate } from '@/lib/email/templates';
 
 export const runtime = 'nodejs';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ── Welcome email ─────────────────────────────────────────────────────
 
@@ -130,8 +128,8 @@ export async function POST(req: Request) {
         await user.save();
 
         if (!wasAlreadyPro) {
-          await resend.emails.send({
-            from: 'VerityFlow <onboarding@resend.dev>',
+          await sendMail({
+            from: FROM_ADDRESS,
             to: user.email,
             subject: 'Welcome to VerityFlow Pro!',
             html: welcomeEmailHtml(user.firstName),
@@ -202,8 +200,8 @@ export async function POST(req: Request) {
         }
         await user.save();
 
-        await resend.emails.send({
-          from: 'VerityFlow <onboarding@resend.dev>',
+        await sendMail({
+          from: FROM_ADDRESS,
           to: user.email,
           subject: 'Action required: Payment failed for VerityFlow Pro',
           html: paymentFailedEmailHtml(user.firstName),
