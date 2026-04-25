@@ -93,7 +93,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   resetAttempts(rateLimitKey);
 
-  const token = signAdminToken(userId);
+  const token = await signAdminToken(userId);
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(ADMIN_COOKIE, token, {

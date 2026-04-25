@@ -45,7 +45,7 @@ export async function middleware(req: NextRequest) {
 
   // Admin routes: 404 for anyone without a valid admin-unlock cookie
   if (isAdminRoute) {
-    if (!token || !isAdminUnlockedFromRequest(req)) {
+    if (!token || !(await isAdminUnlockedFromRequest(req))) {
       return NextResponse.rewrite(new URL('/admin-not-found', req.url));
     }
     return NextResponse.next();
