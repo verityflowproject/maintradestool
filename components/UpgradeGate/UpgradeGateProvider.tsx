@@ -86,7 +86,7 @@ function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => void })
             lineHeight: 1.6,
           }}
         >
-          Upgrade to Pro to continue using TradesBrain.
+          Upgrade to Pro to continue using VerityFlow.
         </p>
 
         <ul className="upgrade-gate__features">

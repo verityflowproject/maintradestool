@@ -182,13 +182,13 @@ export default function SettingsHubClient({
         <NavRow
           icon={<HelpCircle size={18} />}
           label="Help Center"
-          href="https://help.tradesbrain.com"
+          href="https://help.verityflow.com"
           external
         />
         <NavRow
           icon={<MessageSquare size={18} />}
           label="Contact Support"
-          href="mailto:support@tradesbrain.com"
+          href="mailto:support@verityflow.com"
           external
         />
         <NavRow icon={<FileText size={18} />} label="Terms & Privacy" href="/legal" />

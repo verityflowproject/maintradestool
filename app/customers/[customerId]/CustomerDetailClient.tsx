@@ -278,7 +278,7 @@ function QuickLogJobButton({ customer }: { customer: CustomerData }) {
   function handleClick() {
     try {
       sessionStorage.setItem(
-        'tradesbrain_prefill_customer',
+        'verityflow_prefill_customer',
         JSON.stringify({
           _id: customer._id,
           fullName: customer.fullName,

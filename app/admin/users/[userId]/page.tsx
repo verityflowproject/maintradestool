@@ -1,6 +1,6 @@
 import UserDetailClient from './UserDetailClient';
 
-export const metadata = { title: 'User Detail — TradesBrain Admin' };
+export const metadata = { title: 'User Detail — VerityFlow Admin' };
 
 export default function AdminUserDetailPage({
   params,

@@ -150,7 +150,7 @@ export default function BillingClient({
               {trialDays} day{trialDays !== 1 ? 's' : ''} remaining
             </p>
             <p className="billing-status-sub">
-              After your trial, choose a plan to continue using TradesBrain.
+              After your trial, choose a plan to continue using VerityFlow.
             </p>
           </>
         )}

@@ -36,14 +36,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TradesBrain",
-  description: "The operating system for trades professionals.",
+  title: "VerityFlow",
+  description: "Voice in. Invoice out. AI-powered job memory and instant invoices for tradespeople.",
   manifest: "/manifest.json",
-  applicationName: "TradesBrain",
+  applicationName: "VerityFlow",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "TradesBrain",
+    title: "VerityFlow",
   },
   icons: {
     icon: [
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     apple: "/icons/apple-touch-icon.png",
   },
   openGraph: {
-    title: "TradesBrain — AI for Tradespeople",
+    title: "VerityFlow — AI for Tradespeople",
     description: "Voice-log your jobs. Auto-generate invoices. Get paid faster.",
     type: "website",
     images: ["/og-image.png"],

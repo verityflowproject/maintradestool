@@ -69,7 +69,7 @@ export default function InstallPrompt() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Install TradesBrain"
+      aria-label="Install VerityFlow"
       style={{
         position: "fixed",
         bottom: 0,
@@ -102,7 +102,7 @@ export default function InstallPrompt() {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
           <Image
             src="/icons/icon-192.png"
-            alt="TradesBrain"
+            alt="VerityFlow"
             width={48}
             height={48}
             style={{ borderRadius: 10, flexShrink: 0 }}
@@ -119,7 +119,7 @@ export default function InstallPrompt() {
                     margin: 0,
                   }}
                 >
-                  Install TradesBrain
+                  Install VerityFlow
                 </p>
                 <p
                   style={{
@@ -144,7 +144,7 @@ export default function InstallPrompt() {
                     margin: 0,
                   }}
                 >
-                  Install TradesBrain on your iPhone
+                  Install VerityFlow on your iPhone
                 </p>
                 <div
                   style={{

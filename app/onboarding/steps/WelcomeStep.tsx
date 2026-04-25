@@ -69,13 +69,13 @@ export default function WelcomeStep({ advanceStep }: WelcomeStepProps) {
 
         {/* Title */}
         <div className="welcome-item stagger-1">
-          <h1 className="welcome-title">TradesBrain</h1>
+          <h1 className="welcome-title">VerityFlow</h1>
         </div>
 
         {/* Tagline */}
         <div className="welcome-item stagger-2">
           <p className="welcome-tagline">
-            Your job memory. Your instant invoices.
+            Voice in. Invoice out.
           </p>
         </div>
 

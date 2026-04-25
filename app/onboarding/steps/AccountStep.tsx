@@ -63,7 +63,7 @@ export default function AccountStep({
       const json = await res.json();
 
       if (res.status === 201) {
-        localStorage.setItem("tradesbrain_profile", JSON.stringify(data));
+        localStorage.setItem("verityflow_profile", JSON.stringify(data));
         advanceStep(() => true);
       } else if (res.status === 409) {
         setErrors((e) => ({
@@ -84,7 +84,7 @@ export default function AccountStep({
 
   return (
     <div className="step-body">
-      <h2>Secure your TradesBrain</h2>
+      <h2>Secure your VerityFlow</h2>
       <p className="step-sub">Create your account to save everything.</p>
 
       <div className="form-field">

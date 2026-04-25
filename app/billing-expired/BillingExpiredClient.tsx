@@ -85,7 +85,7 @@ export default function BillingExpiredClient({
       >
         {isPastDue
           ? "We couldn't process your payment."
-          : 'Your TradesBrain trial has ended.'}
+          : 'Your VerityFlow trial has ended.'}
       </h1>
 
       <p

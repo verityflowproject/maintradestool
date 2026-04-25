@@ -132,8 +132,8 @@ export default function ReviewClient({ defaultRate, defaultMarkup }: Props) {
   useEffect(() => {
     let raw: string | null = null;
     try {
-      raw = sessionStorage.getItem('tradesbrain_parsed_job');
-      sessionStorage.removeItem('tradesbrain_parsed_job');
+      raw = sessionStorage.getItem('verityflow_parsed_job');
+      sessionStorage.removeItem('verityflow_parsed_job');
     } catch {
       // sessionStorage unavailable
     }
@@ -155,8 +155,8 @@ export default function ReviewClient({ defaultRate, defaultMarkup }: Props) {
 
     let prefillRaw: string | null = null;
     try {
-      prefillRaw = sessionStorage.getItem('tradesbrain_prefill_customer');
-      sessionStorage.removeItem('tradesbrain_prefill_customer');
+      prefillRaw = sessionStorage.getItem('verityflow_prefill_customer');
+      sessionStorage.removeItem('verityflow_prefill_customer');
     } catch {
       // noop
     }

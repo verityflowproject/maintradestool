@@ -1,5 +1,5 @@
 /**
- * Icon generation script for TradesBrain PWA.
+ * Icon generation script for VerityFlow PWA.
  * Run: npm run generate-icons
  *
  * Outputs to public/icons/ and public/favicon.ico
@@ -69,14 +69,14 @@ function ogImageSvg() {
     font-weight="700"
     letter-spacing="2"
     fill="#F8F8F8"
-  >TradesBrain</text>
+  >VerityFlow</text>
   <text
     x="${cx}" y="${cy + d + 110}"
     text-anchor="middle"
     font-family="system-ui, -apple-system, sans-serif"
     font-size="28"
     fill="#888"
-  >AI job memory and instant invoices for tradespeople.</text>
+  >Voice in. Invoice out. AI-powered job memory and instant invoices for tradespeople.</text>
 </svg>`;
 }
 
@@ -115,7 +115,7 @@ async function svgToPng(svgString, outputPath, width, height) {
 }
 
 async function main() {
-  console.log('Generating TradesBrain icons…\n');
+  console.log('Generating VerityFlow icons…\n');
 
   // Standard icons (rounded rect background, diamond at 60%)
   await svgToPng(diamondSvg(1024, 0.6, true), join(OUT, 'icon-192.png'), 192);

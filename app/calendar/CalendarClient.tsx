@@ -349,7 +349,7 @@ export default function CalendarClient({
   function handleScheduleJobCta() {
     if (selectedDate) {
       try {
-        sessionStorage.setItem('tradesbrain_prefill_scheduled_date', selectedDate);
+        sessionStorage.setItem('verityflow_prefill_scheduled_date', selectedDate);
       } catch {
         // sessionStorage unavailable
       }

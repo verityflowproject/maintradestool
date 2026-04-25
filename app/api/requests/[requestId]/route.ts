@@ -109,12 +109,12 @@ export async function PATCH(
           <p>Your request has been confirmed. <strong>${user.firstName}</strong> will be in touch shortly to arrange the details.</p>
           <hr style="border-color:#2a2a3d;margin:24px 0;"/>
           <p style="color:#9898aa;font-size:12px;">You submitted a request for: ${request.serviceNeeded}</p>
-          <p style="color:#5a5a6e;font-size:12px;margin-top:24px;">Powered by TradesBrain</p>
+          <p style="color:#5a5a6e;font-size:12px;margin-top:24px;">Powered by VerityFlow</p>
         </div>
       `;
 
       await resend.emails.send({
-        from: 'TradesBrain <noreply@tradesbrain.com>',
+        from: 'VerityFlow <noreply@verityflow.com>',
         to: request.email,
         subject: `${user.businessName} confirmed your request!`,
         html,

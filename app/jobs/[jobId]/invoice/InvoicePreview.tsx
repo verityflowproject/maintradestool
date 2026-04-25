@@ -67,17 +67,17 @@ export default function InvoicePreview({ invoice, business }: Props) {
         <span className="invoice-preview__customer-name">
           {invoice.customerName as string}
         </span>
-        {invoice.customerAddress && (
+        {Boolean(invoice.customerAddress) && (
           <span className="invoice-preview__customer-detail">
             {invoice.customerAddress as string}
           </span>
         )}
-        {invoice.customerPhone && (
+        {Boolean(invoice.customerPhone) && (
           <span className="invoice-preview__customer-detail">
             {invoice.customerPhone as string}
           </span>
         )}
-        {invoice.customerEmail && (
+        {Boolean(invoice.customerEmail) && (
           <span className="invoice-preview__customer-detail">
             {invoice.customerEmail as string}
           </span>
@@ -138,7 +138,7 @@ export default function InvoicePreview({ invoice, business }: Props) {
       </div>
 
       {/* ── Notes ── */}
-      {invoice.notes && (
+      {Boolean(invoice.notes) && (
         <div className="invoice-preview__notes">
           <span className="invoice-preview__section-label">Notes</span>
           <p className="invoice-preview__notes-text">

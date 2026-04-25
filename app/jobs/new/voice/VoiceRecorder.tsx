@@ -258,7 +258,7 @@ export default function VoiceRecorder() {
         setTranscript(result.transcript);
         try {
           sessionStorage.setItem(
-            'tradesbrain_parsed_job',
+            'verityflow_parsed_job',
             JSON.stringify({ transcript: result.transcript, parsedJob: result.parsedJob }),
           );
         } catch {

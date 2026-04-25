@@ -51,7 +51,7 @@ export async function DELETE(
 
   const job = await Job.findOne({ _id: params.jobId, userId: session.user.id })
     .select('invoiceId customerId')
-    .lean<{ _id: unknown; invoiceId?: unknown; customerId?: unknown } | null>();
+    .lean<{ _id: Types.ObjectId; invoiceId?: Types.ObjectId; customerId?: Types.ObjectId } | null>();
 
   if (!job) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

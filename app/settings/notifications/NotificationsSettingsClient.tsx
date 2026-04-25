@@ -43,7 +43,7 @@ const ROWS: { key: NotifKey; label: string; desc: string }[] = [
   {
     key: 'productUpdates',
     label: 'Product updates',
-    desc: 'Occasional updates from the TradesBrain team',
+    desc: 'Occasional updates from the VerityFlow team',
   },
 ];
 

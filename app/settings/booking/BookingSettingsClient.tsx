@@ -49,7 +49,7 @@ export default function BookingSettingsClient({
 
   const slugCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const APP_URL = 'tradesbrain.com';
+  const APP_URL = 'verityflow.com';
 
   const handleToggle = useCallback(async () => {
     const newEnabled = !enabled;

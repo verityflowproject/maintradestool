@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import AdminDashboardClient from './AdminDashboardClient';
 
 export const metadata = {
-  title: 'Admin — TradesBrain',
+  title: 'Admin — VerityFlow',
 };
 
 export default async function AdminPage() {

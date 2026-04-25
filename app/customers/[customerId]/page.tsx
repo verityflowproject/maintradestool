@@ -5,7 +5,7 @@ import { dbConnect } from '@/lib/mongodb';
 import Customer from '@/lib/models/Customer';
 import Job from '@/lib/models/Job';
 import { deriveFullName } from '@/lib/utils/customerName';
-import CustomerDetailClient from './CustomerDetailClient';
+import CustomerDetailClient, { type CustomerData, type JobRow } from './CustomerDetailClient';
 
 function serialize<T>(doc: T): T {
   return JSON.parse(JSON.stringify(doc)) as T;
@@ -26,7 +26,7 @@ export default async function CustomerDetailPage({
     Customer.findOne({
       _id: params.customerId,
       userId: session.user.id,
-    }).lean<Record<string, unknown> | null>(),
+    }).lean<CustomerData | null>(),
     Job.find({
       customerId: params.customerId,
       userId: session.user.id,
@@ -35,7 +35,7 @@ export default async function CustomerDetailPage({
       .select(
         '_id title status total laborHours createdAt completedDate invoiceId invoiceNumber aiParsed',
       )
-      .lean<Record<string, unknown>[]>(),
+      .lean<JobRow[]>(),
   ]);
 
   if (!customerDoc) notFound();

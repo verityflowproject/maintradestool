@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
-import JobsClient from './JobsClient';
+import JobsClient, { type JobRow } from './JobsClient';
 
 function serialize<T>(doc: T): T {
   return JSON.parse(JSON.stringify(doc)) as T;
@@ -21,7 +21,7 @@ export default async function JobsPage() {
       .select(
         '_id title status customerName customerAddress total laborHours createdAt aiParsed invoiceNumber invoiceId',
       )
-      .lean<Record<string, unknown>[]>(),
+      .lean<JobRow[]>(),
     Job.countDocuments({ userId: session.user.id }),
   ]);
 

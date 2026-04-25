@@ -20,11 +20,11 @@ function welcomeEmailHtml(firstName: string): string {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:system-ui,-apple-system,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
     <div style="background:#1A1A1A;padding:28px 32px;">
-      <span style="color:#C7D2FE;font-size:22px;font-weight:800;letter-spacing:0.04em;">TradesBrain</span>
+      <span style="color:#C7D2FE;font-size:22px;font-weight:800;letter-spacing:0.04em;">VerityFlow</span>
       <span style="color:#6366F1;font-size:12px;font-weight:600;margin-left:8px;">PRO</span>
     </div>
     <div style="padding:32px;">
-      <h2 style="color:#1A1A1A;font-size:22px;margin:0 0 12px;">Welcome to TradesBrain Pro, ${firstName}!</h2>
+      <h2 style="color:#1A1A1A;font-size:22px;margin:0 0 12px;">Welcome to VerityFlow Pro, ${firstName}!</h2>
       <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px;">
         Your subscription is now active. Here's everything you've unlocked:
       </p>
@@ -38,12 +38,12 @@ function welcomeEmailHtml(firstName: string): string {
         ].map((f) => `<li style="padding:6px 0;color:#333;font-size:14px;">&#10003; &nbsp;${f}</li>`).join('')}
       </ul>
       <p style="color:#666;font-size:13px;">
-        Thanks for being a TradesBrain Pro member. If you have any questions, reply to this email or visit
-        <a href="https://help.tradesbrain.com" style="color:#6366F1;">help.tradesbrain.com</a>.
+        Thanks for being a VerityFlow Pro member. If you have any questions, reply to this email or visit
+        <a href="https://help.verityflow.com" style="color:#6366F1;">help.verityflow.com</a>.
       </p>
     </div>
     <div style="background:#f9f9f9;padding:16px 32px;text-align:center;border-top:1px solid #eee;">
-      <p style="margin:0;font-size:12px;color:#999;">TradesBrain &middot; The OS for trades professionals.</p>
+      <p style="margin:0;font-size:12px;color:#999;">VerityFlow &middot; The OS for trades professionals.</p>
     </div>
   </div>
 </body>
@@ -53,19 +53,19 @@ function welcomeEmailHtml(firstName: string): string {
 // ── Payment failed email ──────────────────────────────────────────────
 
 function paymentFailedEmailHtml(firstName: string): string {
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://tradesbrain.com';
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://verityflow.com';
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:system-ui,-apple-system,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
     <div style="background:#1A1A1A;padding:28px 32px;">
-      <span style="color:#C7D2FE;font-size:22px;font-weight:800;">TradesBrain</span>
+      <span style="color:#C7D2FE;font-size:22px;font-weight:800;">VerityFlow</span>
     </div>
     <div style="padding:32px;">
       <h2 style="color:#F87171;font-size:20px;margin:0 0 12px;">Payment Failed</h2>
       <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px;">
-        Hi ${firstName}, we were unable to process your payment for TradesBrain Pro.
+        Hi ${firstName}, we were unable to process your payment for VerityFlow Pro.
         Please update your payment method to keep your Pro access.
       </p>
       <a href="${baseUrl}/settings/billing"
@@ -131,9 +131,9 @@ export async function POST(req: Request) {
 
         if (!wasAlreadyPro) {
           await resend.emails.send({
-            from: 'TradesBrain <onboarding@resend.dev>',
+            from: 'VerityFlow <onboarding@resend.dev>',
             to: user.email,
-            subject: 'Welcome to TradesBrain Pro!',
+            subject: 'Welcome to VerityFlow Pro!',
             html: welcomeEmailHtml(user.firstName),
           });
         }
@@ -203,9 +203,9 @@ export async function POST(req: Request) {
         await user.save();
 
         await resend.emails.send({
-          from: 'TradesBrain <onboarding@resend.dev>',
+          from: 'VerityFlow <onboarding@resend.dev>',
           to: user.email,
-          subject: 'Action required: Payment failed for TradesBrain Pro',
+          subject: 'Action required: Payment failed for VerityFlow Pro',
           html: paymentFailedEmailHtml(user.firstName),
         });
         break;

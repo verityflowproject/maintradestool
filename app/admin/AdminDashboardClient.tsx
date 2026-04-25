@@ -273,7 +273,7 @@ export default function AdminDashboardClient({
             margin: 0,
           }}
         >
-          TradesBrain Admin
+          VerityFlow Admin
         </h1>
         <div
           style={{

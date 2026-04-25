@@ -1,3 +1,5 @@
+'use client';
+
 export default function OfflinePage() {
   return (
     <div
@@ -17,7 +19,7 @@ export default function OfflinePage() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/icons/icon-192.png"
-        alt="TradesBrain"
+        alt="VerityFlow"
         width={80}
         height={80}
         style={{ borderRadius: 18, opacity: 0.6 }}

@@ -60,7 +60,7 @@ export async function POST(
 
   // Send notification email to tradesperson (gated on preference)
   if (user.email && user.notifications?.newBookingRequest !== false) {
-    const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'https://tradesbrain.com';
+    const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'https://verityflow.com';
     const acceptLink = `${origin}/requests/${request._id}`;
 
     const preferredInfo = [
@@ -85,14 +85,14 @@ export async function POST(
         <div style="margin-top:28px;">
           <a href="${acceptLink}" style="display:inline-block;background:#c8b4fa;color:#07070c;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;">Accept Request</a>
         </div>
-        <p style="margin-top:24px;font-size:12px;color:#5a5a6e;">This request was submitted through your TradesBrain booking page.</p>
+        <p style="margin-top:24px;font-size:12px;color:#5a5a6e;">This request was submitted through your VerityFlow booking page.</p>
       </div>
     `;
 
     await resend.emails.send({
-      from: 'TradesBrain <noreply@tradesbrain.com>',
+      from: 'VerityFlow <noreply@verityflow.com>',
       to: user.email,
-      subject: `New job request from ${name} — TradesBrain`,
+      subject: `New job request from ${name} — VerityFlow`,
       html,
     });
   }

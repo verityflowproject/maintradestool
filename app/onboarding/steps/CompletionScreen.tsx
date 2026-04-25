@@ -5,7 +5,7 @@ import { TRADES, TEAM_SIZES, PAIN_POINTS } from "@/lib/constants";
 import type { OnboardingData } from "../types";
 
 const TRADE_COPY: Record<string, string> = {
-  plumber: "Your TradesBrain is wired up. Let's bury the paperwork.",
+  plumber: "Your VerityFlow is wired up. Let's bury the paperwork.",
   electrician: "Fully wired. Time to run a tighter operation.",
   hvac: "All systems go. Your business just got smarter.",
   roofer: "Solid foundation. Let's get you organized.",
@@ -94,7 +94,7 @@ export default function CompletionScreen({ data }: Props) {
         className="btn-accent completion-cta"
         onClick={() => router.push("/dashboard")}
       >
-        Enter TradesBrain
+        Enter VerityFlow
       </button>
     </div>
   );

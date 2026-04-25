@@ -17,7 +17,7 @@ export default async function PublicInvoicePage({
 
   const invoice = await Invoice.findOne({
     invoiceNumber: decodeURIComponent(params.invoiceNumber),
-  }).lean();
+  }).lean<Record<string, unknown> | null>();
 
   if (!invoice) notFound();
 

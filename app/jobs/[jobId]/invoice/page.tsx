@@ -35,7 +35,7 @@ export default async function InvoicePage({
   const invoice = await Invoice.findOne({
     jobId: job._id,
     userId: session.user.id,
-  }).lean();
+  }).lean<Record<string, unknown> | null>();
 
   const user = await User.findById(session.user.id)
     .select('businessName region')

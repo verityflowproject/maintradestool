@@ -92,7 +92,7 @@ export default function RequestDetailClient({ request: initial }: Props) {
       address: initial.address,
       serviceNeeded: initial.serviceNeeded,
     };
-    sessionStorage.setItem('tradesbrain_prefill_customer', JSON.stringify(prefill));
+    sessionStorage.setItem('verityflow_prefill_customer', JSON.stringify(prefill));
     router.push('/jobs/new/voice');
   }, [initial, router]);
 

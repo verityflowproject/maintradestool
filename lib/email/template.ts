@@ -51,7 +51,7 @@ export function renderTemplate({
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="padding:20px 0 0;font-family:Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;color:#D4AF64;">
-                    TradesBrain
+                    VerityFlow
                   </td>
                 </tr>
                 <tr>
@@ -73,7 +73,7 @@ export function renderTemplate({
           <!-- Footer -->
           <tr>
             <td style="padding:24px 0 8px;text-align:center;font-family:Arial,sans-serif;font-size:12px;color:#666;">
-              <p style="margin:0 0 8px;">TradesBrain — AI job memory and instant invoices for tradespeople.</p>
+              <p style="margin:0 0 8px;">VerityFlow — Voice in. Invoice out. AI-powered job memory and instant invoices for tradespeople.</p>
               <p style="margin:0;">
                 ${unsub} &nbsp;·&nbsp;
                 <a href="${unsubscribeUrl.split('/unsubscribe')[0]}/settings/notifications" style="color:#888;text-decoration:underline;">Manage preferences</a>

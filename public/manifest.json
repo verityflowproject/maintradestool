@@ -1,7 +1,7 @@
 {
-  "name": "TradesBrain",
-  "short_name": "TradesBrain",
-  "description": "AI job memory and instant invoices for tradespeople.",
+  "name": "VerityFlow",
+  "short_name": "VerityFlow",
+  "description": "Voice in. Invoice out. AI-powered job memory and instant invoices for tradespeople.",
   "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "portrait",

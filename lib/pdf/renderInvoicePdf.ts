@@ -8,5 +8,6 @@ export async function renderInvoicePdf(
 ): Promise<Buffer> {
   const { renderToBuffer } = await import('@react-pdf/renderer');
   const { InvoicePDF } = await import('@/lib/pdf/InvoicePDF');
-  return renderToBuffer(React.createElement(InvoicePDF, { invoice, business }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return renderToBuffer(React.createElement(InvoicePDF, { invoice, business }) as any);
 }

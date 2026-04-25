@@ -7,7 +7,7 @@ type TemplateResult = Omit<SendEmailArgs, 'to'>;
 
 export function welcomeTemplate(user: Pick<IUser, '_id' | 'firstName' | 'email'>): TemplateResult {
   return {
-    subject: `Welcome to TradesBrain, ${user.firstName}!`,
+    subject: `Welcome to VerityFlow, ${user.firstName}!`,
     preheader: 'Your 30-day trial has started. Tap the mic to log your first job.',
     heading: `Welcome, ${user.firstName}!`,
     body: `
@@ -37,7 +37,7 @@ export function firstJobTemplate(
     preheader: 'Now try generating an invoice from it.',
     heading: 'First job logged!',
     body: `
-      <p>Great work, ${user.firstName}! You just logged your first job with TradesBrain.</p>
+      <p>Great work, ${user.firstName}! You just logged your first job with VerityFlow.</p>
       <p>Now try generating an invoice from it — it takes about 10 seconds.</p>
       <p>Once you've sent an invoice, you'll see it tracked in your dashboard automatically.</p>
     `,
@@ -54,11 +54,11 @@ export function firstInvoiceSentTemplate(
 ): TemplateResult {
   return {
     subject: 'First invoice out the door!',
-    preheader: "You're officially running TradesBrain. Here's how to get paid faster.",
+    preheader: "You're officially running VerityFlow. Here's how to get paid faster.",
     heading: "First invoice sent!",
     body: `
       <p>Nice one, ${user.firstName}! Your first invoice is on its way.</p>
-      <p>You're officially running TradesBrain. A few tips to get paid faster:</p>
+      <p>You're officially running VerityFlow. A few tips to get paid faster:</p>
       <ul style="margin:12px 0;padding-left:20px;">
         <li style="margin-bottom:8px;">Set payment terms to <strong>Net 7</strong> for quicker turnaround</li>
         <li style="margin-bottom:8px;">Add a card payment link via Stripe to let customers pay online instantly</li>
@@ -134,7 +134,7 @@ export function trialWarningTemplate(
     : null;
 
   if (daysLeft === 7) {
-    subject = 'Your TradesBrain trial ends in 7 days';
+    subject = 'Your VerityFlow trial ends in 7 days';
     body = `
       <p>Hi ${user.firstName}, your free trial ends in <strong>7 days</strong>.</p>
       <p>After your trial, you'll lose access to:</p>
@@ -147,7 +147,7 @@ export function trialWarningTemplate(
       <p>Upgrade now to keep all your data and stay on top of your business.</p>
     `;
   } else if (daysLeft === 3) {
-    subject = '3 days left on your TradesBrain trial';
+    subject = '3 days left on your VerityFlow trial';
     const statsBlurb =
       stats && (stats.jobsCount > 0 || stats.revenue > 0)
         ? `<p style="background:#f5f5f5;border-radius:8px;padding:12px 16px;margin:16px 0;">
@@ -157,7 +157,7 @@ export function trialWarningTemplate(
     body = `
       <p>Hi ${user.firstName}, only <strong>3 days left</strong> on your trial — don't let the momentum stop.</p>
       ${statsBlurb}
-      <p>Upgrade to TradesBrain Pro for just $29/month and keep everything running smoothly.</p>
+      <p>Upgrade to VerityFlow Pro for just $29/month and keep everything running smoothly.</p>
     `;
   } else {
     subject = 'Your trial ends tomorrow — upgrade to keep going';
@@ -185,13 +185,13 @@ export function trialExpiredTemplate(
   user: Pick<IUser, '_id' | 'firstName' | 'email'>
 ): TemplateResult {
   return {
-    subject: 'Your TradesBrain trial has ended',
+    subject: 'Your VerityFlow trial has ended',
     preheader: 'Your data is safe. Subscribe any time to continue.',
     heading: 'Trial ended',
     body: `
       <p>Hi ${user.firstName}, your free trial has come to an end.</p>
       <p><strong>Your data is safe.</strong> All your jobs, invoices, and customers are still there — subscribe any time to pick up right where you left off.</p>
-      <p>TradesBrain Pro is $29/month. No lock-in, cancel any time.</p>
+      <p>VerityFlow Pro is $29/month. No lock-in, cancel any time.</p>
     `,
     ctaText: 'Reactivate Account',
     ctaUrl: `${APP_URL}/settings/billing`,
@@ -234,11 +234,11 @@ export function weeklyReportTemplate(
     : '';
 
   return {
-    subject: `Your TradesBrain week — ${dateRange}`,
+    subject: `Your VerityFlow week — ${dateRange}`,
     preheader: `${stats.jobs} jobs · ${revenueStr} revenue this week.`,
     heading: `Your week: ${dateRange}`,
     body: `
-      <p>Hi ${user.firstName}, here's your weekly TradesBrain summary:</p>
+      <p>Hi ${user.firstName}, here's your weekly VerityFlow summary:</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
         <tr>
           <td style="text-align:center;padding:12px;background:#f9f9f9;border-radius:8px;width:25%;">
@@ -278,7 +278,7 @@ export function subscriptionCancelledTemplate(
   user: Pick<IUser, '_id' | 'firstName' | 'email'>
 ): TemplateResult {
   return {
-    subject: 'Your TradesBrain subscription has been cancelled',
+    subject: 'Your VerityFlow subscription has been cancelled',
     preheader: 'Sorry to see you go. Your data will be kept safe.',
     heading: 'Subscription cancelled',
     body: `
