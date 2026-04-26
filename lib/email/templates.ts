@@ -294,3 +294,138 @@ export function subscriptionCancelledTemplate(
     preferenceLabel: 'account notification',
   };
 }
+
+// ── Contact / feedback emails ────────────────────────────────────────────────
+
+type ContactType =
+  | 'feature_request'
+  | 'bug_report'
+  | 'feedback'
+  | 'support'
+  | 'partnership'
+  | 'other';
+
+const CONTACT_TYPE_LABEL: Record<ContactType, string> = {
+  feature_request: 'feature request',
+  bug_report: 'bug report',
+  feedback: 'feedback',
+  support: 'support request',
+  partnership: 'partnership inquiry',
+  other: 'message',
+};
+
+export function contactConfirmationTemplate(
+  user: { email: string; firstName: string },
+  type: ContactType,
+  snapshot: { title?: string; description: string }
+): TemplateResult {
+  const subjectMap: Record<ContactType, string> = {
+    feature_request: 'We got your feature request 💡',
+    bug_report: 'Bug report received — we\'re on it',
+    feedback: 'Thanks for the feedback',
+    support: 'We received your support request',
+    partnership: 'Message received',
+    other: 'Message received',
+  };
+
+  const bodyMap: Record<ContactType, string> = {
+    feature_request: `<p>We appreciate you taking the time to share your idea. We'll review it and add it to our roadmap if it's a strong fit.</p>`,
+    bug_report: `<p>Our team is on it. We'll let you know as soon as it's been investigated and resolved.</p>`,
+    feedback: `<p>Every word matters. Honest feedback is how we build something genuinely useful — thank you.</p>`,
+    support: `<p>We'll get back to you within 24 hours during business hours. If it's urgent, feel free to send a follow-up.</p>`,
+    partnership: `<p>Thanks for reaching out. We'll review your message and get back to you soon.</p>`,
+    other: `<p>Thanks for reaching out. We'll review your message and get back to you soon.</p>`,
+  };
+
+  const submissionLines = [
+    snapshot.title ? `<p><strong>Subject:</strong> ${snapshot.title}</p>` : '',
+    `<p><strong>Your message:</strong><br/>${snapshot.description.replace(/\n/g, '<br/>')}</p>`,
+  ]
+    .filter(Boolean)
+    .join('');
+
+  return {
+    subject: subjectMap[type],
+    preheader: 'We typically respond within 24 hours.',
+    heading: subjectMap[type],
+    body: `
+      <p>Hi ${user.firstName || 'there'},</p>
+      ${bodyMap[type]}
+      <p style="color:#666;font-size:13px;">We typically respond within 24 hours.</p>
+      <hr style="border:none;border-top:1px solid #eee;margin:20px 0;"/>
+      <p style="color:#888;font-size:13px;"><strong>Your submission for reference:</strong></p>
+      <div style="background:#f9f9f9;border-radius:8px;padding:16px;font-size:13px;color:#555;">
+        ${submissionLines}
+      </div>
+    `,
+    ctaText: 'View your submissions',
+    ctaUrl: `${APP_URL}/contact/history`,
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'account notification',
+  };
+}
+
+export interface ContactAdminNotificationArgs {
+  submissionId: string;
+  type: ContactType;
+  userFirstName: string;
+  userBusinessName: string;
+  userEmail: string;
+  title?: string;
+  description: string;
+  problemSolved?: string;
+  priority?: string;
+  stepsToReproduce?: string;
+  willingToPay?: boolean;
+  rating?: number;
+}
+
+export function contactAdminNotificationTemplate(
+  args: ContactAdminNotificationArgs
+): TemplateResult {
+  const {
+    submissionId,
+    type,
+    userFirstName,
+    userBusinessName,
+    userEmail,
+    title,
+    description,
+    problemSolved,
+    priority,
+    stepsToReproduce,
+    willingToPay,
+    rating,
+  } = args;
+
+  const typeLabel = CONTACT_TYPE_LABEL[type] ?? type;
+  const displayName = userFirstName || userEmail;
+  const bizSuffix = userBusinessName ? ` (${userBusinessName})` : '';
+
+  const rows = [
+    title ? `<tr><td style="padding:6px 0;font-weight:700;width:140px;">Subject</td><td>${title}</td></tr>` : '',
+    `<tr><td style="padding:6px 0;font-weight:700;">From</td><td>${displayName}${bizSuffix} &lt;${userEmail}&gt;</td></tr>`,
+    `<tr><td style="padding:6px 0;font-weight:700;">Type</td><td>${typeLabel}</td></tr>`,
+    priority ? `<tr><td style="padding:6px 0;font-weight:700;">Priority</td><td>${priority}</td></tr>` : '',
+    rating ? `<tr><td style="padding:6px 0;font-weight:700;">Rating</td><td>${rating}/5</td></tr>` : '',
+    willingToPay ? `<tr><td style="padding:6px 0;font-weight:700;">Would pay extra</td><td>Yes</td></tr>` : '',
+    `<tr><td style="padding:6px 0;font-weight:700;vertical-align:top;">Description</td><td>${description.replace(/\n/g, '<br/>')}</td></tr>`,
+    problemSolved ? `<tr><td style="padding:6px 0;font-weight:700;vertical-align:top;">Problem solved</td><td>${problemSolved.replace(/\n/g, '<br/>')}</td></tr>` : '',
+    stepsToReproduce ? `<tr><td style="padding:6px 0;font-weight:700;vertical-align:top;">Steps to reproduce</td><td>${stepsToReproduce.replace(/\n/g, '<br/>')}</td></tr>` : '',
+  ]
+    .filter(Boolean)
+    .join('');
+
+  return {
+    subject: `[VerityFlow] New ${typeLabel} from ${displayName}${bizSuffix}`,
+    preheader: title ?? description.slice(0, 80),
+    heading: `New ${typeLabel}`,
+    body: `
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#333;">
+        ${rows}
+      </table>
+    `,
+    ctaText: 'Open in admin',
+    ctaUrl: `${APP_URL}/admin/feedback/${submissionId}`,
+  };
+}

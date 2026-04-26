@@ -6157,3 +6157,161 @@ a.request-detail__contact:hover { text-decoration: underline; }
   margin: 4px 0 0;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   CONTACT PAGE
+   ══════════════════════════════════════════════════════════════════════ */
+
+@keyframes contactPulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--quartz-shimmer), 0 20px 60px rgba(0,0,0,0.4), 0 0 0 rgba(99,102,241,0); }
+  50%       { box-shadow: inset 0 0 0 1px var(--quartz-shimmer), 0 20px 60px rgba(0,0,0,0.4), 0 0 22px var(--quartz-glow); }
+}
+
+.contact-card {
+  padding: 20px 22px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.contact-card--feature {
+  border-color: var(--accent);
+  animation: contactPulse 3s ease-in-out infinite;
+}
+
+.contact-card__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.contact-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contact-card__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-card__title {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.contact-card__sub {
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.contact-card__chevron {
+  transition: transform 0.25s ease;
+}
+
+.contact-card__chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.contact-card__divider {
+  height: 1px;
+  background: var(--quartz-border);
+  margin: 16px 0;
+}
+
+.contact-card__expand {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.contact-card__expand.open {
+  max-height: 900px;
+}
+
+.contact-card__form {
+  opacity: 0;
+  transition: opacity 0.25s ease 0.1s;
+}
+
+.contact-card__expand.open .contact-card__form {
+  opacity: 1;
+}
+
+/* Priority pills */
+.contact-priority-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 13px;
+  font-family: var(--font-dm-sans), sans-serif;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.contact-priority-pill.active {
+  font-weight: 600;
+}
+
+/* Emoji rating */
+.contact-rating-emoji {
+  font-size: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background 0.15s ease, transform 0.1s ease;
+  line-height: 1;
+}
+
+.contact-rating-emoji.selected {
+  background: var(--accent-dim);
+  transform: scale(1.15);
+}
+
+/* Character counter */
+.contact-char-counter {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  margin-top: 4px;
+  transition: color 0.2s ease;
+}
+
+/* Success state */
+.contact-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+/* Spinner */
+.spin {
+  animation: spinAnim 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spinAnim {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

@@ -56,7 +56,8 @@ export default function BottomNav() {
     pathname === "/jobs/new/voice" ||
     pathname.startsWith("/invoice/") ||
     pathname.startsWith("/book/") ||
-    pathname.startsWith("/admin")
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/contact")
   ) {
     return null;
   }

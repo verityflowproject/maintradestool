@@ -21,7 +21,7 @@ export async function middleware(req: NextRequest) {
   });
 
   const isProtected =
-    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings)(\/|$|\?)/.test(pathname);
+    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|contact)(\/|$|\?)/.test(pathname);
   const isOnboarding = pathname === '/onboarding';
   const isAdminRoute =
     pathname === '/admin' ||
@@ -64,7 +64,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/(dashboard|jobs|customers|invoices|calendar|requests|settings)(.*)?',
+    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|contact)(.*)?',
     '/onboarding',
     '/admin/:path*',
     '/api/admin/:path*',
