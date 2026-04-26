@@ -51,6 +51,10 @@ export interface IContactSubmission extends Document {
   upvotes: number;
   upvotedBy: mongoose.Types.ObjectId[];
 
+  // Public board + dashboard
+  submitterTrade: string;
+  userNotifiedOfShip: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +98,9 @@ const ContactSubmissionSchema = new Schema<IContactSubmission>(
 
     upvotes: { type: Number, default: 0 },
     upvotedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+
+    submitterTrade: { type: String, default: '' },
+    userNotifiedOfShip: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

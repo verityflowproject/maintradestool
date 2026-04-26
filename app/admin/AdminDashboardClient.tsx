@@ -747,6 +747,34 @@ export default function AdminDashboardClient({
             </div>
           </div>
 
+          {/* ── Feedback link ── */}
+          <div className="glass-card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: 15, margin: '0 0 4px' }}>User Feedback &amp; Requests</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+                Review feature requests, bug reports, and support messages.
+              </p>
+            </div>
+            <Link
+              href="/admin/feedback"
+              style={{
+                display: 'inline-block',
+                background: 'var(--accent)',
+                color: '#000',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '8px 16px',
+                borderRadius: 10,
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                marginLeft: 16,
+              }}
+            >
+              View Feedback →
+            </Link>
+          </div>
+
           {/* ── Platform stats footer ── */}
           <div
             style={{

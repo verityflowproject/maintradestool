@@ -61,12 +61,13 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   // Snapshot user fields
   const dbUser = await User.findById(session.user.id)
-    .select('email firstName businessName')
+    .select('email firstName businessName trade')
     .lean();
 
   const userEmail = (dbUser as { email: string } | null)?.email ?? session.user.email ?? '';
   const userFirstName = (dbUser as { firstName: string } | null)?.firstName ?? '';
   const userBusinessName = (dbUser as { businessName: string } | null)?.businessName ?? '';
+  const submitterTrade = (dbUser as { trade?: string } | null)?.trade ?? '';
 
   const priorityValue = (() => {
     if (type === 'bug_report') {
@@ -90,6 +91,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     willingToPay: willingToPay ?? false,
     rating: rating ?? undefined,
     deviceInfo,
+    submitterTrade,
     status: 'new',
   });
 

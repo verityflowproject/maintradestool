@@ -6315,3 +6315,216 @@ a.request-detail__contact:hover { text-decoration: underline; }
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Feature Board + Feedback Loop ───────────────────────────────── */
+
+/* Dashboard feature-request banner */
+.dashboard-feature-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #3a2a00 0%, #1a1200 100%);
+  color: #fff;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.dashboard-feature-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(212, 175, 100, 0.18) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: featureBannerShimmer 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes featureBannerShimmer {
+  0%   { background-position: -200% 0; }
+  50%  { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.dashboard-feature-banner--queued {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.dashboard-feature-banner--queued::before {
+  display: none;
+}
+
+/* Dashboard ship callout */
+.dashboard-ship-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--success);
+  background: rgba(34, 197, 94, 0.07);
+  margin: 8px 0;
+}
+
+/* Feature card (feature board) */
+.feature-card {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.feature-card__vote {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 56px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 12px 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.feature-card__vote:hover {
+  background: rgba(212, 175, 100, 0.08);
+  color: var(--accent);
+}
+
+.feature-card__vote.upvoted {
+  color: var(--accent);
+}
+
+.feature-card__vote.vote-scale svg {
+  animation: voteScale 0.35s ease-out;
+}
+
+@keyframes voteScale {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.feature-card__content {
+  flex: 1;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.feature-card__reply {
+  border-left: 3px solid var(--accent);
+  padding: 8px 10px;
+  margin-top: 10px;
+  background: rgba(212, 175, 100, 0.06);
+  border-radius: 0 8px 8px 0;
+}
+
+/* Feature / status pills */
+.feature-status-pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.feature-status-pill--new {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+}
+
+.feature-status-pill--reviewing {
+  background: rgba(251, 191, 36, 0.15);
+  color: #f59e0b;
+}
+
+.feature-status-pill--planned {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.feature-status-pill--shipped {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.feature-status-pill--closed {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--text-muted);
+}
+
+.feature-status-pill--wont_fix {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+/* Filter pills */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filter-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+/* History filter row */
+.history-filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.history-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Submission detail celebration banner */
+.submission-detail-celebration {
+  width: 100%;
+  background: linear-gradient(120deg, #064e3b, #065f46);
+  color: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}

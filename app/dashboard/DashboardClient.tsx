@@ -35,11 +35,19 @@ interface DashboardData {
   weeklyEarnings: WeekDay[];
 }
 
+interface ShippedCallout {
+  _id: string;
+  title: string;
+  description: string;
+}
+
 interface Props {
   firstName: string;
   businessName: string;
   planState: PlanState;
   trialEndsAt: string | null;
+  hasRecentFeatureRequest?: boolean;
+  shippedCallouts?: ShippedCallout[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -150,11 +158,12 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── DashboardClient ────────────────────────────────────────────────────
 
-export default function DashboardClient({ firstName, businessName, planState, trialEndsAt }: Props) {
+export default function DashboardClient({ firstName, businessName, planState, trialEndsAt, hasRecentFeatureRequest = false, shippedCallouts = [] }: Props) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [, setTick] = useState(0);
+  const [visibleCallouts, setVisibleCallouts] = useState<ShippedCallout[]>(shippedCallouts);
 
   // Full fetch — shows loading skeleton on first load, spinner on manual refresh
   const fetchData = useCallback(async () => {
@@ -338,6 +347,58 @@ export default function DashboardClient({ firstName, businessName, planState, tr
             See Plans
           </Link>
         </div>
+      )}
+
+      {/* Ship callouts */}
+      {visibleCallouts.map((callout) => (
+        <div key={callout._id} className="dashboard-ship-callout">
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, fontSize: '0.9rem', margin: '0 0 0.2rem' }}>
+              🚀 Your idea shipped: <span style={{ fontWeight: 400 }}>{callout.title || callout.description}</span>
+            </p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+              Thanks for shaping VerityFlow! Check the feature board for more.
+            </p>
+          </div>
+          <button
+            aria-label="Dismiss"
+            onClick={() => {
+              setVisibleCallouts((prev) => prev.filter((c) => c._id !== callout._id));
+              fetch(`/api/contact/${callout._id}/dismiss-ship`, { method: 'POST' }).catch(console.error);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              fontSize: '1.1rem',
+              cursor: 'pointer',
+              padding: '0 0 0 0.5rem',
+              flexShrink: 0,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+
+      {/* Feature request banner */}
+      {hasRecentFeatureRequest ? (
+        <Link href="/feature-board" className="dashboard-feature-banner dashboard-feature-banner--queued">
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>Your idea is in the queue 🙌</p>
+            <p style={{ fontSize: '0.78rem', opacity: 0.8, margin: 0 }}>See all community features and vote on your favourites</p>
+          </div>
+          <ChevronRight size={18} />
+        </Link>
+      ) : (
+        <Link href="/contact?type=feature" className="dashboard-feature-banner">
+          <div style={{ fontSize: '1.4rem', flexShrink: 0 }}>💡</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>Got an idea?</p>
+            <p style={{ fontSize: '0.78rem', opacity: 0.8, margin: 0 }}>Share a feature request — we build what trades need</p>
+          </div>
+          <ChevronRight size={18} />
+        </Link>
       )}
 
       {/* Recent Jobs */}

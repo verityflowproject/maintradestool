@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Lightbulb, Bug, MessageSquare, LifeBuoy, Mail } from 'lucide-react';
+import Link from 'next/link';
 
 type ContactType = 'feature_request' | 'bug_report' | 'feedback' | 'support' | 'partnership' | 'other';
 type ContactStatus = 'new' | 'reviewing' | 'planned' | 'shipped' | 'closed' | 'wont_fix';
@@ -10,20 +10,29 @@ type ContactStatus = 'new' | 'reviewing' | 'planned' | 'shipped' | 'closed' | 'w
 interface Submission {
   _id: string;
   type: ContactType;
-  status: ContactStatus;
   title?: string;
   description: string;
+  status: ContactStatus;
   publicReply?: string;
   createdAt: string;
 }
 
-const TYPE_ICON: Record<ContactType, React.ReactNode> = {
-  feature_request: <Lightbulb size={16} />,
-  bug_report: <Bug size={16} />,
-  feedback: <MessageSquare size={16} />,
-  support: <LifeBuoy size={16} />,
-  partnership: <Mail size={16} />,
-  other: <Mail size={16} />,
+const TYPE_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'feature_request', label: '💡 Features' },
+  { id: 'bug_report', label: '🐛 Bugs' },
+  { id: 'feedback', label: '⭐ Feedback' },
+  { id: 'support', label: '🙋 Support' },
+  { id: 'other', label: '📬 Other' },
+];
+
+const TYPE_ICON: Record<ContactType, string> = {
+  feature_request: '💡',
+  bug_report: '🐛',
+  feedback: '⭐',
+  support: '🙋',
+  partnership: '🤝',
+  other: '📬',
 };
 
 const TYPE_LABEL: Record<ContactType, string> = {
@@ -35,112 +44,180 @@ const TYPE_LABEL: Record<ContactType, string> = {
   other: 'Other',
 };
 
-const STATUS_COLOR: Record<ContactStatus, string> = {
-  new: 'var(--accent-text)',
-  reviewing: 'var(--warning)',
-  planned: 'var(--warning)',
-  shipped: '#4ade80',
-  closed: 'var(--text-muted)',
-  wont_fix: 'var(--text-muted)',
-};
-
 const STATUS_LABEL: Record<ContactStatus, string> = {
   new: 'New',
   reviewing: 'Reviewing',
   planned: 'Planned',
-  shipped: 'Shipped',
+  shipped: 'Shipped ✅',
   closed: 'Closed',
-  wont_fix: "Won't fix",
+  wont_fix: "Won't Fix",
 };
 
-function StatusPill({ status }: { status: ContactStatus }) {
-  return (
-    <span style={{
-      fontSize: 11,
-      color: STATUS_COLOR[status],
-      background: `${STATUS_COLOR[status]}22`,
-      border: `1px solid ${STATUS_COLOR[status]}44`,
-      borderRadius: 20,
-      padding: '2px 8px',
-      whiteSpace: 'nowrap',
-    }}>
-      {STATUS_LABEL[status]}
-    </span>
-  );
+const STATUS_CLASS: Record<ContactStatus, string> = {
+  new: 'feature-status-pill--new',
+  reviewing: 'feature-status-pill--reviewing',
+  planned: 'feature-status-pill--planned',
+  shipped: 'feature-status-pill--shipped',
+  closed: 'feature-status-pill--closed',
+  wont_fix: 'feature-status-pill--wont_fix',
+};
+
+function relativeTime(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
 }
 
 export default function HistoryClient() {
   const router = useRouter();
+  const [filter, setFilter] = useState('all');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     fetch('/api/contact/my-submissions')
       .then((r) => r.json())
-      .then((d) => setSubmissions(d.submissions ?? []))
+      .then((data) => {
+        setSubmissions(Array.isArray(data.submissions) ? data.submissions : []);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
+  const filtered =
+    filter === 'all' ? submissions : submissions.filter((s) => s.type === filter);
+
   return (
-    <div
-      className="app-shell"
-      style={{ minHeight: '100dvh', background: 'var(--bg-void)', paddingBottom: 40 }}
-    >
-      <div style={{ padding: 'calc(20px + env(safe-area-inset-top)) 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-          <button type="button" className="icon-btn" onClick={() => router.push('/contact')} aria-label="Back">
-            <ChevronLeft size={22} />
-          </button>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '2rem' }}>
+      {/* Header */}
+      <div
+        style={{
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border)',
+          padding: '1.25rem 1rem 1rem',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+        }}
+      >
+        <div style={{ maxWidth: 640, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <button
+              onClick={() => router.push('/contact')}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+            >
+              ←
+            </button>
+            <div>
+              <h1 style={{ fontFamily: 'var(--font-syne)', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
+                Your Submissions
+              </h1>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                Track your requests and feedback
+              </p>
+            </div>
+          </div>
+
+          {/* Filter pills */}
+          <div className="history-filter-row">
+            {TYPE_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                className={`filter-pill${filter === f.id ? ' active' : ''}`}
+                onClick={() => setFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-syne), sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--text-primary)', margin: '0 0 6px' }}>
-          Your Submissions
-        </h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: '0 0 24px' }}>
-          Everything you&apos;ve sent us.
-        </p>
       </div>
 
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {loading && (
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', padding: 32 }}>Loading…</p>
-        )}
-        {!loading && submissions.length === 0 && (
-          <div className="glass-card" style={{ padding: 32, textAlign: 'center' }}>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>No submissions yet.</p>
-            <a href="/contact" style={{ fontSize: 13, color: 'var(--accent-text)', marginTop: 8, display: 'inline-block' }}>
-              Get in touch →
-            </a>
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '1rem' }}>
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            Loading…
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+              {filter === 'all' ? "You haven't submitted anything yet." : 'No submissions in this category.'}
+            </p>
+            <Link
+              href="/contact"
+              style={{
+                display: 'inline-block',
+                background: 'var(--accent)',
+                color: '#000',
+                fontWeight: 700,
+                padding: '0.625rem 1.25rem',
+                borderRadius: 10,
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+              }}
+            >
+              Send a Message
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {filtered.map((s) => (
+              <div
+                key={s._id}
+                className="glass-card"
+                onClick={() => router.push(`/contact/history/${s._id}`)}
+                style={{ padding: '1rem', cursor: 'pointer', borderRadius: 14, position: 'relative' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.375rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <span style={{ fontSize: '1rem' }}>{TYPE_ICON[s.type]}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      {TYPE_LABEL[s.type]}
+                    </span>
+                  </div>
+                  <span className={`feature-status-pill ${STATUS_CLASS[s.status]}`}>
+                    {STATUS_LABEL[s.status]}
+                  </span>
+                </div>
+
+                {s.title && (
+                  <p style={{ fontWeight: 700, fontSize: '0.95rem', margin: '0 0 0.25rem', lineHeight: 1.3 }}>
+                    {s.title}
+                  </p>
+                )}
+                <p
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                    margin: 0,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {s.description}
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <span>{relativeTime(s.createdAt)}</span>
+                  {s.publicReply && (
+                    <>
+                      <span>·</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 600 }}>✨ Team replied</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
-        {submissions.map((s) => (
-          <div key={s._id} className="glass-card" style={{ padding: '16px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', fontSize: 12 }}>
-                {TYPE_ICON[s.type]}
-                <span>{TYPE_LABEL[s.type]}</span>
-              </div>
-              <StatusPill status={s.status} />
-            </div>
-            {s.title && (
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>
-                {s.title}
-              </p>
-            )}
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {s.description}
-            </p>
-            {s.publicReply && (
-              <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--accent-dim)', borderRadius: 8, borderLeft: '2px solid var(--accent)' }}>
-                <p style={{ fontSize: 11, color: 'var(--accent-text)', margin: '0 0 4px', fontWeight: 600 }}>Reply from VerityFlow</p>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>{s.publicReply}</p>
-              </div>
-            )}
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 0' }}>
-              {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </p>
-          </div>
-        ))}
       </div>
     </div>
   );

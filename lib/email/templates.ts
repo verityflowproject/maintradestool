@@ -380,6 +380,74 @@ export interface ContactAdminNotificationArgs {
   rating?: number;
 }
 
+export function contactReplyTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  submission: { _id: string; type: ContactType; title?: string },
+  reply: string
+): TemplateResult {
+  const typeLabel = CONTACT_TYPE_LABEL[submission.type] ?? submission.type;
+  return {
+    subject: `We replied to your ${typeLabel}`,
+    preheader: reply.slice(0, 90),
+    heading: `A reply to your ${typeLabel}`,
+    body: `
+      <p>Hi ${user.firstName || 'there'},</p>
+      <p>Our team has replied to your ${typeLabel}${submission.title ? ` "<strong>${submission.title}</strong>"` : ''}:</p>
+      <div style="border-left:3px solid #D4AF64;padding:12px 16px;margin:20px 0;background:#fffbf2;border-radius:0 8px 8px 0;font-size:14px;color:#333;">
+        ${reply.replace(/\n/g, '<br/>')}
+      </div>
+      <p>If you have further questions, feel free to reply to this email or submit a new request.</p>
+    `,
+    ctaText: 'View your submission',
+    ctaUrl: `${APP_URL}/contact/history/${submission._id}`,
+    userId: String(user._id),
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'account notification',
+  };
+}
+
+export function featurePlannedTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  submission: { _id: string; title?: string }
+): TemplateResult {
+  return {
+    subject: 'Your idea is on the roadmap! 📋',
+    preheader: "We're building what you asked for.",
+    heading: "It's on the roadmap! 📋",
+    body: `
+      <p>Hi ${user.firstName || 'there'},</p>
+      <p>Great news — your feature request${submission.title ? ` "<strong>${submission.title}</strong>"` : ''} has been <strong>added to our roadmap</strong>.</p>
+      <p>We're working on it. You'll get another notification when it ships. In the meantime, you can view all planned features on the feature board.</p>
+    `,
+    ctaText: 'View Feature Board',
+    ctaUrl: `${APP_URL}/feature-board`,
+    userId: String(user._id),
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'product update',
+  };
+}
+
+export function featureShippedTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  submission: { _id: string; title?: string }
+): TemplateResult {
+  return {
+    subject: 'We shipped your idea! 🚀',
+    preheader: "Something you asked for is now live.",
+    heading: "Your idea shipped! 🚀",
+    body: `
+      <p>Hi ${user.firstName || 'there'},</p>
+      <p>We just shipped your feature request${submission.title ? ` "<strong>${submission.title}</strong>"` : ''}. It's now live in VerityFlow!</p>
+      <p>Thank you for helping shape the product. Your feedback makes VerityFlow better for every trade business on the platform.</p>
+    `,
+    ctaText: 'Go to Dashboard',
+    ctaUrl: `${APP_URL}/dashboard`,
+    userId: String(user._id),
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'product update',
+  };
+}
+
 export function contactAdminNotificationTemplate(
   args: ContactAdminNotificationArgs
 ): TemplateResult {
