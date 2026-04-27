@@ -203,6 +203,33 @@ p {
   min-height: 100dvh;
 }
 
+/* ----- Settings corner button ----- */
+.settings-corner-btn {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  right: 16px;
+  z-index: 90;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: rgba(14, 14, 22, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--quartz-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s;
+}
+.settings-corner-btn:hover,
+.settings-corner-btn:focus-visible {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  outline: none;
+}
+
 /* ----- Bottom nav ----- */
 .bottom-nav {
   position: fixed;

@@ -109,7 +109,7 @@ export default function HistoryClient() {
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <button
-              onClick={() => router.push('/contact')}
+              onClick={() => router.push('/settings')}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
             >
               ←

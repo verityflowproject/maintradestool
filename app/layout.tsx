@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Syne, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import BottomNav from "@/components/BottomNav";
+import SettingsCornerButton from "@/components/SettingsCornerButton";
 import SessionProviderShell from "@/components/SessionProviderShell";
 import { ToastProvider } from "@/components/Toast/ToastProvider";
 import { UpgradeGateProvider } from "@/components/UpgradeGate/UpgradeGateProvider";
@@ -95,6 +96,7 @@ export default async function RootLayout({
                 style={impersonation ? { paddingTop: 36 } : undefined}
               >
                 <TrialBanner />
+                <SettingsCornerButton />
                 <div className="page-content">{children}</div>
                 <BottomNav />
               </div>

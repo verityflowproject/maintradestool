@@ -8,7 +8,6 @@ import {
   CalendarDays,
   Receipt,
   Plus,
-  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { usePlanState } from "@/lib/hooks/usePlanState";
@@ -28,7 +27,6 @@ const LEFT_TABS: NavTab[] = [
 const RIGHT_TABS: NavTab[] = [
   { href: "/calendar", label: "Calendar", Icon: CalendarDays },
   { href: "/invoices", label: "Invoices", Icon: Receipt },
-  { href: "/settings", label: "Settings", Icon: Settings },
 ];
 
 function NavButton({ tab, active }: { tab: NavTab; active: boolean }) {
