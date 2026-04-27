@@ -119,7 +119,7 @@ export default function PublicBookingClient({
       {previewMode && (
         <div
           style={{
-            background: 'rgba(212,175,100,0.12)',
+            background: 'rgba(30, 144, 255,0.12)',
             border: '1px solid var(--accent)',
             borderRadius: 10,
             padding: '10px 14px',

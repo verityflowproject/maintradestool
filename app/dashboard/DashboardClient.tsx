@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { AlertCircle, Bell, ChevronRight, Mic, RefreshCw } from 'lucide-react';
 import {
@@ -267,7 +268,16 @@ export default function DashboardClient({ firstName, businessName, planState, tr
       {/* Top bar */}
       <div className="dashboard-top">
         <div className="dashboard-greeting">
-          <span className="greeting-pre">Good {greeting},</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <Image
+              src="/logo/verityflow-icon.png"
+              alt="VerityFlow"
+              width={28}
+              height={28}
+              style={{ borderRadius: 6 }}
+            />
+            <span className="greeting-pre">Good {greeting},</span>
+          </div>
           <span className="greeting-name">{firstName || 'there'}.</span>
           {businessName && <span className="greeting-biz">{businessName}</span>}
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -78,7 +79,17 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
           ×
         </button>
 
-        <h2 style={{ marginBottom: '24px', fontSize: '20px' }}>Sign in</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <Image
+            src="/logo/verityflow-icon.png"
+            alt="VerityFlow"
+            width={48}
+            height={48}
+            priority
+            style={{ borderRadius: 10 }}
+          />
+          <h2 style={{ fontSize: '20px', margin: 0 }}>Sign in</h2>
+        </div>
 
         <button
           type="button"

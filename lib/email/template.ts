@@ -20,7 +20,7 @@ export function renderTemplate({
   const cta =
     ctaText && ctaUrl
       ? `<div style="text-align:center;margin:28px 0;">
-          <a href="${ctaUrl}" style="background:#D4AF64;color:#07070C;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;display:inline-block;">
+          <a href="${ctaUrl}" style="background:#1E90FF;color:#050912;text-decoration:none;font-family:Arial,sans-serif;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;display:inline-block;">
             ${ctaText}
           </a>
         </div>`
@@ -37,11 +37,11 @@ export function renderTemplate({
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${heading}</title>
 </head>
-<body style="margin:0;padding:0;background:#07070C;font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0;padding:0;background:#050912;font-family:Arial,Helvetica,sans-serif;">
   <!-- Preheader -->
   <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</span>
   <!-- Wrapper -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#07070C;padding:32px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#050912;padding:32px 16px;">
     <tr>
       <td align="center">
         <table width="100%" style="max-width:560px;">
@@ -50,12 +50,12 @@ export function renderTemplate({
             <td style="padding-bottom:0;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding:20px 0 0;font-family:Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;color:#D4AF64;">
+                  <td style="padding:20px 0 0;font-family:Arial,sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;color:#1E90FF;">
                     VerityFlow
                   </td>
                 </tr>
                 <tr>
-                  <td style="height:3px;background:#D4AF64;border-radius:2px;"></td>
+                  <td style="height:3px;background:#1E90FF;border-radius:2px;"></td>
                 </tr>
               </table>
             </td>
@@ -63,7 +63,7 @@ export function renderTemplate({
           <!-- Card -->
           <tr>
             <td style="background:#ffffff;border-radius:12px;padding:32px 36px;margin-top:0;">
-              <h1 style="font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#07070C;margin:0 0 20px;">${heading}</h1>
+              <h1 style="font-family:Arial,sans-serif;font-size:22px;font-weight:700;color:#050912;margin:0 0 20px;">${heading}</h1>
               <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;line-height:1.6;">
                 ${body}
               </div>

@@ -85,7 +85,7 @@ export function invoicePaidTemplate(
     preheader: `Payment confirmed for invoice ${invoice.invoiceNumber}.`,
     heading: 'Payment received!',
     body: `
-      <p style="font-size:28px;font-weight:700;color:#07070C;margin:0 0 16px;">${amount}</p>
+      <p style="font-size:28px;font-weight:700;color:#050912;margin:0 0 16px;">${amount}</p>
       <p><strong>${customerName}</strong> has paid invoice <strong>${invoice.invoiceNumber}</strong>.</p>
       <p>The invoice has been marked as paid in your dashboard.</p>
     `,
@@ -223,9 +223,9 @@ export function weeklyReportTemplate(
 
   const outstandingBlurb =
     stats.outstandingCount > 0
-      ? `<p style="background:#fff8ec;border:1px solid #D4AF64;border-radius:8px;padding:12px 16px;margin:16px 0;color:#555;">
+      ? `<p style="background:#f0f8ff;border:1px solid #1E90FF;border-radius:8px;padding:12px 16px;margin:16px 0;color:#555;">
           ⚠ You have <strong>${stats.outstandingCount} outstanding invoice${stats.outstandingCount !== 1 ? 's' : ''}</strong> totalling <strong>${outstandingStr}</strong>.
-          <a href="${APP_URL}/invoices" style="color:#D4AF64;font-weight:700;"> Follow up →</a>
+          <a href="${APP_URL}/invoices" style="color:#1E90FF;font-weight:700;"> Follow up →</a>
         </p>`
       : '';
 
@@ -242,22 +242,22 @@ export function weeklyReportTemplate(
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
         <tr>
           <td style="text-align:center;padding:12px;background:#f9f9f9;border-radius:8px;width:25%;">
-            <div style="font-size:24px;font-weight:700;color:#07070C;">${stats.jobs}</div>
+            <div style="font-size:24px;font-weight:700;color:#050912;">${stats.jobs}</div>
             <div style="font-size:12px;color:#666;margin-top:4px;">Jobs</div>
           </td>
           <td width="8"></td>
           <td style="text-align:center;padding:12px;background:#f9f9f9;border-radius:8px;width:25%;">
-            <div style="font-size:24px;font-weight:700;color:#07070C;">${stats.invoices}</div>
+            <div style="font-size:24px;font-weight:700;color:#050912;">${stats.invoices}</div>
             <div style="font-size:12px;color:#666;margin-top:4px;">Invoices</div>
           </td>
           <td width="8"></td>
           <td style="text-align:center;padding:12px;background:#f9f9f9;border-radius:8px;width:25%;">
-            <div style="font-size:18px;font-weight:700;color:#07070C;">${revenueStr}</div>
+            <div style="font-size:18px;font-weight:700;color:#050912;">${revenueStr}</div>
             <div style="font-size:12px;color:#666;margin-top:4px;">Revenue</div>
           </td>
           <td width="8"></td>
           <td style="text-align:center;padding:12px;background:#f9f9f9;border-radius:8px;width:25%;">
-            <div style="font-size:24px;font-weight:700;color:#07070C;">${stats.newCustomers}</div>
+            <div style="font-size:24px;font-weight:700;color:#050912;">${stats.newCustomers}</div>
             <div style="font-size:12px;color:#666;margin-top:4px;">New Customers</div>
           </td>
         </tr>
@@ -393,7 +393,7 @@ export function contactReplyTemplate(
     body: `
       <p>Hi ${user.firstName || 'there'},</p>
       <p>Our team has replied to your ${typeLabel}${submission.title ? ` "<strong>${submission.title}</strong>"` : ''}:</p>
-      <div style="border-left:3px solid #D4AF64;padding:12px 16px;margin:20px 0;background:#fffbf2;border-radius:0 8px 8px 0;font-size:14px;color:#333;">
+      <div style="border-left:3px solid #1E90FF;padding:12px 16px;margin:20px 0;background:#f0f8ff;border-radius:0 8px 8px 0;font-size:14px;color:#333;">
         ${reply.replace(/\n/g, '<br/>')}
       </div>
       <p>If you have further questions, feel free to reply to this email or submit a new request.</p>

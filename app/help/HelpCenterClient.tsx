@@ -291,7 +291,7 @@ const CATEGORIES: Category[] = [
   {
     id: 'billing',
     icon: <CreditCard size={18} />,
-    iconBg: 'rgba(251,191,36,0.12)',
+    iconBg: 'rgba(56, 189, 248,0.12)',
     iconColor: 'var(--warning)',
     label: 'Billing & Subscription',
     items: [
@@ -353,7 +353,7 @@ const CATEGORIES: Category[] = [
   {
     id: 'account-privacy',
     icon: <ShieldCheck size={18} />,
-    iconBg: 'rgba(99,102,241,0.15)',
+    iconBg: 'rgba(30, 144, 255, 0.15)',
     iconColor: 'var(--accent)',
     label: 'Account & Privacy',
     items: [

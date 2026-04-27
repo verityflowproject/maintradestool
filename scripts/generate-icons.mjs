@@ -2,6 +2,8 @@
  * Icon generation script for VerityFlow PWA.
  * Run: npm run generate-icons
  *
+ * Sources: public/logo/verityflow-icon.png (app icon)
+ *          public/logo/verityflow-full.png  (wordmark for OG image)
  * Outputs to public/icons/ and public/favicon.ico
  */
 
@@ -18,90 +20,120 @@ const sharp = require('sharp');
 const { default: pngToIco } = require('png-to-ico');
 const { writeFileSync } = require('fs');
 
-const OUT = join(projectRoot, 'public', 'icons');
+const OUT    = join(projectRoot, 'public', 'icons');
 const PUBLIC = join(projectRoot, 'public');
+const LOGO   = join(projectRoot, 'public', 'logo', 'verityflow-icon.png');
+const FULL   = join(projectRoot, 'public', 'logo', 'verityflow-full.png');
+
+const BG = '#050912'; // navy-black brand background
+
 mkdirSync(OUT, { recursive: true });
 
-// ── Diamond logo SVG (1024×1024 base) ────────────────────────────────────────
-// Standard variant: rounded-rect background + diamond at 60% scale
-function diamondSvg(size, scale = 0.6, rounded = true) {
-  const half = size / 2;
-  const d = (size * scale) / 2; // half-diagonal
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-  // Diamond path centered at (half, half) with half-diagonal d
-  const diamond = `M${half},${half - d} L${half + d},${half} L${half},${half + d} L${half - d},${half} Z`;
+/**
+ * Compose the brand icon onto a solid background.
+ * @param {number} size   - Output square size in px
+ * @param {number} scale  - Icon as fraction of canvas (0–1)
+ * @param {boolean} rounded - Whether to clip to rounded-rect
+ */
+async function makeIcon(outputPath, size, scale, rounded) {
+  const iconSize = Math.round(size * scale);
+  const offset   = Math.round((size - iconSize) / 2);
+  const radius   = rounded ? Math.round(size * 0.22) : 0;
 
-  const rounding = rounded ? `rx="${Math.round(size * 0.12)}"` : '';
+  // Resize the source logo to iconSize×iconSize (preserving aspect ratio, then padding)
+  const iconBuf = await sharp(LOGO)
+    .resize(iconSize, iconSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <defs>
-    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#D4AF64"/>
-      <stop offset="100%" stop-color="#C49A45"/>
-    </linearGradient>
-  </defs>
-  <rect width="${size}" height="${size}" fill="#07070C" ${rounding}/>
-  <path d="${diamond}" fill="url(#amberGrad)"/>
-</svg>`;
+  let base = sharp({
+    create: { width: size, height: size, channels: 4, background: BG },
+  });
+
+  if (rounded) {
+    // Build an SVG mask for rounded rect
+    const svg = `<svg><rect x="0" y="0" width="${size}" height="${size}" rx="${radius}" ry="${radius}"/></svg>`;
+    base = base.composite([
+      { input: Buffer.from(svg), blend: 'dest-in' },
+    ]);
+    // Re-composite onto solid bg so non-mask area is BG, not transparent
+    const maskedBg = await sharp({
+      create: { width: size, height: size, channels: 4, background: BG },
+    })
+      .composite([
+        { input: Buffer.from(svg), blend: 'dest-in' },
+      ])
+      .png()
+      .toBuffer();
+
+    await sharp({ create: { width: size, height: size, channels: 4, background: { r: 5, g: 9, b: 18, alpha: 1 } } })
+      .composite([
+        { input: maskedBg, blend: 'over' },
+        { input: iconBuf, left: offset, top: offset, blend: 'over' },
+      ])
+      .png()
+      .toFile(outputPath);
+  } else {
+    await sharp({ create: { width: size, height: size, channels: 4, background: BG } })
+      .composite([
+        { input: iconBuf, left: offset, top: offset, blend: 'over' },
+      ])
+      .png()
+      .toFile(outputPath);
+  }
+
+  console.log(`  ✓ ${outputPath.replace(projectRoot, '.')}`);
 }
 
-// ── OG image SVG (1200×630) ───────────────────────────────────────────────────
-function ogImageSvg() {
+/**
+ * OG image: 1200×630, full logo centered on navy background.
+ */
+async function makeOgImage(outputPath) {
   const w = 1200, h = 630;
-  const cx = w / 2, cy = h / 2 - 40;
-  const d = 120;
-  const diamond = `M${cx},${cy - d} L${cx + d},${cy} L${cx},${cy + d} L${cx - d},${cy} Z`;
+  const logoH = 220;
+  const logoW = Math.round(logoH * (32693 / 21000)); // approximate aspect from file; let sharp compute
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs>
-    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#D4AF64"/>
-      <stop offset="100%" stop-color="#C49A45"/>
-    </linearGradient>
-  </defs>
-  <rect width="${w}" height="${h}" fill="#07070C"/>
-  <path d="${diamond}" fill="url(#amberGrad)"/>
-  <text
-    x="${cx}" y="${cy + d + 56}"
-    text-anchor="middle"
-    font-family="system-ui, -apple-system, sans-serif"
-    font-size="64"
-    font-weight="700"
-    letter-spacing="2"
-    fill="#F8F8F8"
-  >VerityFlow</text>
-  <text
-    x="${cx}" y="${cy + d + 110}"
-    text-anchor="middle"
-    font-family="system-ui, -apple-system, sans-serif"
-    font-size="28"
-    fill="#888"
-  >Voice in. Invoice out. AI-powered job memory and instant invoices for tradespeople.</text>
-</svg>`;
+  const fullLogoBuf = await sharp(FULL)
+    .resize({ height: logoH, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+
+  // Get actual resized dimensions
+  const meta = await sharp(fullLogoBuf).metadata();
+  const left = Math.round((w - meta.width) / 2);
+  const top  = Math.round((h - meta.height) / 2);
+
+  await sharp({ create: { width: w, height: h, channels: 3, background: '#050912' } })
+    .composite([
+      { input: fullLogoBuf, left, top, blend: 'over' },
+    ])
+    .png()
+    .toFile(outputPath);
+
+  console.log(`  ✓ ${outputPath.replace(projectRoot, '.')}`);
 }
 
-// ── Lucide Mic shortcut SVG ────────────────────────────────────────────────────
+// ── Shortcut SVGs (mic + receipt) — strokes recolored to brand blue ───────────
+
 function micSvg(size) {
-  const s = size;
-  // Lucide Mic path scaled to fit in a 24-unit viewport, then transformed
-  const scale = s / 24;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none">
-  <rect width="24" height="24" fill="#07070C"/>
-  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" stroke="#D4AF64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="#D4AF64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="12" y1="19" x2="12" y2="22" stroke="#D4AF64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="8" y1="22" x2="16" y2="22" stroke="#D4AF64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">
+  <rect width="24" height="24" fill="#050912"/>
+  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="12" y1="19" x2="12" y2="22" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="8" y1="22" x2="16" y2="22" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 }
 
-// ── Lucide Receipt shortcut SVG ────────────────────────────────────────────────
 function receiptSvg(size) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">
-  <rect width="24" height="24" fill="#07070C"/>
-  <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" stroke="#D4AF64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="8" y1="9" x2="16" y2="9" stroke="#D4AF64" stroke-width="2" stroke-linecap="round"/>
-  <line x1="8" y1="13" x2="16" y2="13" stroke="#D4AF64" stroke-width="2" stroke-linecap="round"/>
-  <line x1="8" y1="17" x2="12" y2="17" stroke="#D4AF64" stroke-width="2" stroke-linecap="round"/>
+  <rect width="24" height="24" fill="#050912"/>
+  <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="8" y1="9" x2="16" y2="9" stroke="#1E90FF" stroke-width="2" stroke-linecap="round"/>
+  <line x1="8" y1="13" x2="16" y2="13" stroke="#1E90FF" stroke-width="2" stroke-linecap="round"/>
+  <line x1="8" y1="17" x2="12" y2="17" stroke="#1E90FF" stroke-width="2" stroke-linecap="round"/>
 </svg>`;
 }
 
@@ -114,39 +146,45 @@ async function svgToPng(svgString, outputPath, width, height) {
   console.log(`  ✓ ${outputPath.replace(projectRoot, '.')}`);
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 async function main() {
   console.log('Generating VerityFlow icons…\n');
 
-  // Standard icons (rounded rect background, diamond at 60%)
-  await svgToPng(diamondSvg(1024, 0.6, true), join(OUT, 'icon-192.png'), 192);
-  await svgToPng(diamondSvg(1024, 0.6, true), join(OUT, 'icon-512.png'), 512);
+  // Standard PWA icons (rounded rect, logo at 60% of canvas)
+  await makeIcon(join(OUT, 'icon-192.png'),          192, 0.60, true);
+  await makeIcon(join(OUT, 'icon-512.png'),          512, 0.60, true);
 
-  // Maskable icons (full-bleed, diamond at 70% safe zone)
-  await svgToPng(diamondSvg(1024, 0.5, false), join(OUT, 'icon-maskable-192.png'), 192);
-  await svgToPng(diamondSvg(1024, 0.5, false), join(OUT, 'icon-maskable-512.png'), 512);
+  // Maskable icons (full-bleed, logo at 50% for safe-zone compliance)
+  await makeIcon(join(OUT, 'icon-maskable-192.png'), 192, 0.50, false);
+  await makeIcon(join(OUT, 'icon-maskable-512.png'), 512, 0.50, false);
 
-  // Apple touch icon (180×180, no rounding — iOS clips automatically)
-  await svgToPng(diamondSvg(1024, 0.6, false), join(OUT, 'apple-touch-icon.png'), 180);
+  // Apple touch icon (180 px, iOS clips to circle automatically)
+  await makeIcon(join(OUT, 'apple-touch-icon.png'),  180, 0.60, false);
 
   // Favicons
-  await svgToPng(diamondSvg(64, 0.6, false), join(OUT, 'favicon-16.png'), 16);
-  await svgToPng(diamondSvg(64, 0.6, false), join(OUT, 'favicon-32.png'), 32);
+  await makeIcon(join(OUT, 'favicon-16.png'),  16, 0.75, false);
+  await makeIcon(join(OUT, 'favicon-32.png'),  32, 0.75, false);
 
-  // Favicon.ico from 32px PNG
-  const favicon32 = await sharp(Buffer.from(diamondSvg(64, 0.6, false), 'utf8'))
-    .resize(32)
+  // favicon.ico from 32px PNG
+  const fav32 = await sharp(LOGO)
+    .resize(24, 24, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+  const favicon32 = await sharp({ create: { width: 32, height: 32, channels: 4, background: BG } })
+    .composite([{ input: fav32, left: 4, top: 4, blend: 'over' }])
     .png()
     .toBuffer();
   const icoBuffer = await pngToIco([favicon32]);
   writeFileSync(join(PUBLIC, 'favicon.ico'), icoBuffer);
-  console.log(`  ✓ ./public/favicon.ico`);
+  console.log('  ✓ ./public/favicon.ico');
 
   // Shortcut icons
-  await svgToPng(micSvg(96), join(OUT, 'shortcut-mic.png'), 96);
+  await svgToPng(micSvg(96),     join(OUT, 'shortcut-mic.png'),     96);
   await svgToPng(receiptSvg(96), join(OUT, 'shortcut-receipt.png'), 96);
 
   // OG image (1200×630)
-  await svgToPng(ogImageSvg(), join(PUBLIC, 'og-image.png'), 1200, 630);
+  await makeOgImage(join(PUBLIC, 'og-image.png'));
 
   console.log('\nDone! All icons generated.');
 }

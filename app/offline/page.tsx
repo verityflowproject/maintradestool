@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 export default function OfflinePage() {
   return (
     <div
@@ -15,14 +17,12 @@ export default function OfflinePage() {
         textAlign: "center",
       }}
     >
-      {/* Diamond icon */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/icons/icon-192.png"
+      <Image
+        src="/logo/verityflow-icon.png"
         alt="VerityFlow"
         width={80}
         height={80}
-        style={{ borderRadius: 18, opacity: 0.6 }}
+        style={{ borderRadius: 18, opacity: 0.75 }}
       />
 
       <h1

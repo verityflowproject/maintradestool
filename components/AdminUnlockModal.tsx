@@ -96,7 +96,7 @@ export default function AdminUnlockModal({ open, onClose }: Props) {
             width: 56,
             height: 56,
             borderRadius: 999,
-            background: 'rgba(212,175,100,0.12)',
+            background: 'rgba(30, 144, 255,0.12)',
             border: '1px solid var(--accent)',
             display: 'flex',
             alignItems: 'center',

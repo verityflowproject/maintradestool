@@ -225,7 +225,7 @@ function OverridePlanModal({ open, onClose, user, onSuccess }: {
 
   return (
     <Modal open={open} onClose={onClose} title="Override Plan">
-      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(56, 189, 248,0.08)", border: "1px solid rgba(56, 189, 248,0.3)", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
         <AlertTriangle size={14} color="var(--warning)" />
         <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: 12, color: "var(--warning)", margin: 0 }}>
           This does not create a real Stripe subscription. Use for support/comp cases only.
@@ -547,7 +547,7 @@ export default function UserDetailClient({ userId }: { userId: string }) {
             <button
               onClick={() => setShowImpersonate(true)}
               style={{
-                background: "rgba(251,191,36,0.12)", border: "1px solid var(--warning)",
+                background: "rgba(56, 189, 248,0.12)", border: "1px solid var(--warning)",
                 color: "var(--warning)", borderRadius: "var(--radius-md)", padding: "8px 14px",
                 fontFamily: "var(--font-syne)", fontWeight: 700, fontSize: 12, cursor: "pointer",
               }}

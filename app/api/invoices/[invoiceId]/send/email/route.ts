@@ -59,7 +59,7 @@ function buildInvoiceEmailHtml(
     <!-- Header -->
     <div style="background:#1A1A1A;padding:28px 32px;display:flex;justify-content:space-between;align-items:center;">
       <span style="color:#ffffff;font-size:20px;font-weight:700;">${business.name}</span>
-      <span style="color:#D4AF64;font-size:22px;font-weight:800;letter-spacing:0.05em;">INVOICE</span>
+      <span style="color:#1E90FF;font-size:22px;font-weight:800;letter-spacing:0.05em;">INVOICE</span>
     </div>
 
     <!-- Body -->
@@ -108,7 +108,7 @@ function buildInvoiceEmailHtml(
       <!-- Total -->
       <div style="text-align:right;margin-bottom:28px;">
         <span style="font-size:13px;color:#555;margin-right:16px;">Total Due</span>
-        <span style="font-size:22px;font-weight:700;color:#D4AF64;">${formatCurrency(invoice.total)}</span>
+        <span style="font-size:22px;font-weight:700;color:#1E90FF;">${formatCurrency(invoice.total)}</span>
       </div>
 
       <p style="font-size:13px;color:#666;">Due by <strong>${formatDate(invoice.dueDate)}</strong>. Please don't hesitate to reach out if you have any questions.</p>

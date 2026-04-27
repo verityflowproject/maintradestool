@@ -72,7 +72,7 @@ const s = StyleSheet.create({
   invoiceLabel: {
     fontSize: 28,
     fontFamily: 'Helvetica-Bold',
-    color: '#D4AF64',
+    color: '#1E90FF',
     marginBottom: 6,
   },
   invoiceNumber: {
@@ -88,7 +88,7 @@ const s = StyleSheet.create({
   },
   headerMetaAmber: {
     fontSize: 11,
-    color: '#D4AF64',
+    color: '#1E90FF',
     marginBottom: 2,
   },
 
@@ -182,12 +182,12 @@ const s = StyleSheet.create({
   totalLabel: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: '#D4AF64',
+    color: '#1E90FF',
   },
   totalValue: {
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
-    color: '#D4AF64',
+    color: '#1E90FF',
   },
 
   // Notes

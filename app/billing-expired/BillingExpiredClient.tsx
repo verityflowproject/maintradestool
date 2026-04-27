@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
 import PlanCards from '@/components/billing/PlanCards';
@@ -70,8 +71,15 @@ export default function BillingExpiredClient({
 
   return (
     <div className="billing-expired-page page-padding">
-      <div className="billing-expired__icon">
-        <Lock size={64} style={{ color: 'var(--accent)' }} />
+      <div className="billing-expired__icon" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <Image
+          src="/logo/verityflow-icon.png"
+          alt="VerityFlow"
+          width={56}
+          height={56}
+          style={{ borderRadius: 12 }}
+        />
+        <Lock size={40} style={{ color: 'var(--accent)' }} />
       </div>
 
       <h1

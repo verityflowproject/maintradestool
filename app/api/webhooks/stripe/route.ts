@@ -19,7 +19,7 @@ function welcomeEmailHtml(firstName: string): string {
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
     <div style="background:#1A1A1A;padding:28px 32px;">
       <span style="color:#C7D2FE;font-size:22px;font-weight:800;letter-spacing:0.04em;">VerityFlow</span>
-      <span style="color:#6366F1;font-size:12px;font-weight:600;margin-left:8px;">PRO</span>
+      <span style="color:#1E90FF;font-size:12px;font-weight:600;margin-left:8px;">PRO</span>
     </div>
     <div style="padding:32px;">
       <h2 style="color:#1A1A1A;font-size:22px;margin:0 0 12px;">Welcome to VerityFlow Pro, ${firstName}!</h2>
@@ -37,7 +37,7 @@ function welcomeEmailHtml(firstName: string): string {
       </ul>
       <p style="color:#666;font-size:13px;">
         Thanks for being a VerityFlow Pro member. If you have any questions, reply to this email or visit
-        <a href="https://help.verityflow.com" style="color:#6366F1;">help.verityflow.com</a>.
+        <a href="https://help.verityflow.com" style="color:#1E90FF;">help.verityflow.com</a>.
       </p>
     </div>
     <div style="background:#f9f9f9;padding:16px 32px;text-align:center;border-top:1px solid #eee;">
@@ -67,7 +67,7 @@ function paymentFailedEmailHtml(firstName: string): string {
         Please update your payment method to keep your Pro access.
       </p>
       <a href="${baseUrl}/settings/billing"
-         style="display:inline-block;background:#6366F1;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+         style="display:inline-block;background:#1E90FF;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
         Update Payment Method
       </a>
     </div>

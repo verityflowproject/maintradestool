@@ -9,33 +9,48 @@ body {
 }
 
 :root {
-  --bg-void: #07070C;
-  --bg-surface: #0E0E16;
-  --bg-elevated: #14141F;
+  /* ── Backgrounds (navy-black derived from logo field) ── */
+  --bg-void: #050912;
+  --bg-surface: #0A1220;
+  --bg-elevated: #101A2E;
   --bg-glass: rgba(255, 255, 255, 0.03);
 
+  /* ── Borders / surfaces ── */
   --quartz-border: rgba(255, 255, 255, 0.08);
   --quartz-border-hover: rgba(255, 255, 255, 0.15);
   --quartz-shimmer: rgba(255, 255, 255, 0.05);
-  --quartz-glow: rgba(99, 102, 241, 0.14);
+  --quartz-glow: rgba(30, 144, 255, 0.14);
 
-  --accent: #6366F1;
-  --accent-dim: rgba(99, 102, 241, 0.15);
-  --accent-glow: rgba(139, 92, 246, 0.28);
-  --accent-text: #C7D2FE;
+  /* ── Brand accent (electric blue from logo gradient) ── */
+  --accent: #1E90FF;
+  --accent-dim: rgba(30, 144, 255, 0.15);
+  --accent-glow: rgba(30, 144, 255, 0.32);
+  --accent-text: #BAE6FD;
 
+  /* ── Text ── */
   --text-primary: #F2F0EB;
   --text-secondary: #9896A0;
   --text-muted: #55536A;
 
+  /* ── Semantic ── */
   --success: #4ADE80;
-  --warning: #FBBF24;
+  --warning: #38BDF8;
   --danger: #F87171;
 
+  /* ── Radii ── */
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
+
+  /* ── Alias tokens (fix legacy references across the codebase) ── */
+  --bg: var(--bg-void);
+  --surface: var(--bg-surface);
+  --border: var(--quartz-border);
+  --text: var(--text-primary);
+  --glass-bg: var(--bg-glass);
+  --fg-primary: var(--text-primary);
+  --amber-400: var(--accent-text);
 }
 
 * {
@@ -51,7 +66,7 @@ body {
 body {
   background-color: var(--bg-void);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 144, 255, 0.08), transparent),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.03 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-attachment: fixed;
   background-repeat: no-repeat, repeat;
@@ -109,12 +124,12 @@ p {
 .btn-accent {
   background-image: linear-gradient(
     120deg,
-    #1E1B4B 0%,
-    #4338CA 25%,
-    #7C3AED 50%,
-    #C7B9FF 62%,
-    #7C3AED 75%,
-    #1E1B4B 100%
+    #050912 0%,
+    #0F4A8A 25%,
+    #1E90FF 50%,
+    #BAE6FD 62%,
+    #1E90FF 75%,
+    #050912 100%
   );
   background-size: 220% 220%;
   animation: accentShimmer 9s ease-in-out infinite;
@@ -125,14 +140,14 @@ p {
   border: none;
   padding: 14px 28px;
   width: 100%;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 20px rgba(30, 144, 255, 0.35);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
 }
 
 .btn-accent:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 8px 30px rgba(30, 144, 255, 0.5);
 }
 
 .btn-ghost {
@@ -228,7 +243,7 @@ p {
 .settings-corner-btn:focus-visible {
   color: var(--accent-text);
   border-color: var(--accent);
-  background: rgba(40, 36, 70, 0.95);
+  background: rgba(10, 18, 32, 0.95);
   outline: none;
 }
 
@@ -301,12 +316,12 @@ p {
   border-radius: 999px;
   background-image: linear-gradient(
     120deg,
-    #1E1B4B 0%,
-    #4338CA 25%,
-    #7C3AED 50%,
-    #C7B9FF 62%,
-    #7C3AED 75%,
-    #1E1B4B 100%
+    #050912 0%,
+    #0F4A8A 25%,
+    #1E90FF 50%,
+    #BAE6FD 62%,
+    #1E90FF 75%,
+    #050912 100%
   );
   background-size: 220% 220%;
   animation: accentShimmer 9s ease-in-out infinite;
@@ -357,12 +372,12 @@ p {
   height: 100%;
   background-image: linear-gradient(
     120deg,
-    #1E1B4B 0%,
-    #4338CA 25%,
-    #7C3AED 50%,
-    #C7B9FF 62%,
-    #7C3AED 75%,
-    #1E1B4B 100%
+    #050912 0%,
+    #0F4A8A 25%,
+    #1E90FF 50%,
+    #BAE6FD 62%,
+    #1E90FF 75%,
+    #050912 100%
   );
   background-size: 220% 220%;
   animation: accentShimmer 9s ease-in-out infinite;
@@ -956,7 +971,7 @@ p {
 }
 
 .strength-row[data-score="3"] .strength-seg:nth-child(-n+3) {
-  background: #8B7340;
+  background: #0EA5E9;
 }
 
 .strength-row[data-score="4"] .strength-seg:nth-child(-n+4) {
@@ -1603,7 +1618,7 @@ p {
   border-radius: 100px;
   padding: 10px 20px;
   margin: 0 4px;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 20px rgba(30, 144, 255, 0.4);
   z-index: 10;
   pointer-events: none;
   animation: stickyTotalIn 0.3s ease;
@@ -1731,7 +1746,7 @@ p {
   gap: 8px;
   padding: 12px 16px;
   margin-bottom: 12px;
-  border-left: 3px solid #D4AF64;
+  border-left: 3px solid #0EA5E9;
   border-radius: var(--radius-md);
   font-family: var(--font-dm-sans), sans-serif;
   font-size: 13px;
@@ -1745,7 +1760,7 @@ p {
 /* ── Uncertain-field warning border ── */
 .input-field--warn {
   border-color: var(--warning) !important;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
 }
 
 /* ── Transcript collapsible ── */
@@ -1823,9 +1838,9 @@ p {
 }
 
 .status-paid {
-  color: #D4AF64;
-  border: 1px solid #D4AF64;
-  background: rgba(212, 175, 100, 0.08);
+  color: #0EA5E9;
+  border: 1px solid #0EA5E9;
+  background: rgba(14, 165, 233, 0.08);
 }
 
 /* AI-logged badge */
@@ -1879,7 +1894,7 @@ p {
   padding: 24px;
   background-color: var(--bg-void);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 144, 255, 0.08), transparent),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.03 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   background-repeat: no-repeat, repeat;
   background-attachment: fixed;
@@ -1949,7 +1964,7 @@ p {
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #D4AF64, #C49A45);
+  background: linear-gradient(135deg, #0EA5E9, #0284C7);
   border: none;
   cursor: pointer;
   display: flex;
@@ -3722,8 +3737,8 @@ p {
 
 .plan-badge--trial {
   color: var(--warning);
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .plan-badge--pro {
@@ -4176,7 +4191,7 @@ p {
 }
 
 .jobs-filter-pill.active .jobs-filter-pill__badge {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(30, 144, 255, 0.25);
   color: var(--accent-text);
 }
 
@@ -4554,7 +4569,7 @@ p {
 }
 
 .calendar-today-btn:hover {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(30, 144, 255, 0.25);
 }
 
 /* -- Week strip ----------------------------------------------------------- */
@@ -4867,7 +4882,7 @@ p {
   border-radius: 12px;
   padding: 10px 16px;
   min-width: 180px;
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 12px 32px rgba(30, 144, 255, 0.35);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -4966,7 +4981,7 @@ p {
 }
 
 .unscheduled-card__schedule-btn:hover {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(30, 144, 255, 0.25);
 }
 
 .unscheduled-card__date-input {
@@ -5714,7 +5729,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FBBF24 0%, #F97316 100%);
+  background: linear-gradient(135deg, #38BDF8 0%, #1E6EBC 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5759,9 +5774,9 @@ a.request-detail__contact:hover { text-decoration: underline; }
 }
 
 .settings-plan-badge--trial {
-  background: rgba(251, 191, 36, 0.15);
-  color: #FBBF24;
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .settings-plan-badge--pro {
@@ -5905,8 +5920,8 @@ a.request-detail__contact:hover { text-decoration: underline; }
 
 /* -- Info card ----------------------------------------------- */
 .settings-info-card {
-  background: rgba(99, 102, 241, 0.07);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(30, 144, 255, 0.07);
+  border: 1px solid rgba(30, 144, 255, 0.2);
   border-radius: 10px;
   padding: 12px 14px;
   margin-top: 16px;
@@ -6074,8 +6089,8 @@ a.request-detail__contact:hover { text-decoration: underline; }
 }
 
 .billing-plan-card--featured {
-  border-color: #FBBF24;
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2), 0 4px 20px rgba(251, 191, 36, 0.08);
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.2), 0 4px 20px rgba(56, 189, 248, 0.08);
 }
 
 .billing-plan-card__badge {
@@ -6084,8 +6099,8 @@ a.request-detail__contact:hover { text-decoration: underline; }
   right: 12px;
   padding: 3px 8px;
   border-radius: 20px;
-  background: rgba(251, 191, 36, 0.18);
-  color: #FBBF24;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38BDF8;
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
   font-weight: 600;
   font-size: 10px;
@@ -6204,8 +6219,8 @@ a.request-detail__contact:hover { text-decoration: underline; }
 }
 
 .billing-status-pill--open {
-  background: rgba(251, 191, 36, 0.15);
-  color: #FBBF24;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
 }
 
 .billing-status-pill--void {
@@ -6310,7 +6325,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
 }
 
 .trial-banner--warning {
-  background: rgba(251, 191, 36, 0.15);
+  background: rgba(56, 189, 248, 0.15);
   border-bottom-color: var(--warning);
 }
 
@@ -6393,8 +6408,8 @@ a.request-detail__contact:hover { text-decoration: underline; }
 /* ── Dashboard expired Quick Log ─────────────────────────────────────── */
 
 .quick-log-cta-dash--expired {
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .quick-log-cta-dash--expired .quick-log-cta-dash__title {
@@ -6431,7 +6446,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
    ══════════════════════════════════════════════════════════════════════ */
 
 @keyframes contactPulse {
-  0%, 100% { box-shadow: inset 0 0 0 1px var(--quartz-shimmer), 0 20px 60px rgba(0,0,0,0.4), 0 0 0 rgba(99,102,241,0); }
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--quartz-shimmer), 0 20px 60px rgba(0,0,0,0.4), 0 0 0 rgba(30, 144, 255,0); }
   50%       { box-shadow: inset 0 0 0 1px var(--quartz-shimmer), 0 20px 60px rgba(0,0,0,0.4), 0 0 22px var(--quartz-glow); }
 }
 
@@ -6594,7 +6609,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
   gap: 12px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: linear-gradient(120deg, #3a2a00 0%, #1a1200 100%);
+  background: linear-gradient(120deg, #0A1E3A 0%, #050912 100%);
   color: #fff;
   text-decoration: none;
   position: relative;
@@ -6609,7 +6624,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
   background: linear-gradient(
     105deg,
     transparent 40%,
-    rgba(212, 175, 100, 0.18) 50%,
+    rgba(14, 165, 233, 0.18) 50%,
     transparent 60%
   );
   background-size: 200% 100%;
@@ -6675,7 +6690,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
 }
 
 .feature-card__vote:hover {
-  background: rgba(212, 175, 100, 0.08);
+  background: rgba(14, 165, 233, 0.08);
   color: var(--accent);
 }
 
@@ -6703,7 +6718,7 @@ a.request-detail__contact:hover { text-decoration: underline; }
   border-left: 3px solid var(--accent);
   padding: 8px 10px;
   margin-top: 10px;
-  background: rgba(212, 175, 100, 0.06);
+  background: rgba(14, 165, 233, 0.06);
   border-radius: 0 8px 8px 0;
 }
 
@@ -6723,13 +6738,13 @@ a.request-detail__contact:hover { text-decoration: underline; }
 }
 
 .feature-status-pill--reviewing {
-  background: rgba(251, 191, 36, 0.15);
-  color: #f59e0b;
+  background: rgba(56, 189, 248, 0.15);
+  color: #0284C7;
 }
 
 .feature-status-pill--planned {
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
+  background: rgba(30, 144, 255, 0.15);
+  color: #7DD3FC;
 }
 
 .feature-status-pill--shipped {

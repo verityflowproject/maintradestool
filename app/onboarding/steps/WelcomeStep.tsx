@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import SignInModal from '@/components/SignInModal';
 
 type WelcomeStepProps = {
@@ -22,49 +23,17 @@ export default function WelcomeStep({ advanceStep }: WelcomeStepProps) {
       }}
     >
       <div style={{ width: "100%", maxWidth: "320px" }}>
-        {/* Diamond SVG logo */}
+        {/* Brand logo */}
         <div className="welcome-item stagger-0">
-          <svg
+          <Image
+            src="/logo/verityflow-icon.png"
+            alt="VerityFlow"
+            width={64}
+            height={64}
+            priority
             className="welcome-logo"
-            width="52"
-            height="52"
-            viewBox="0 0 52 52"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden
-          >
-            <defs>
-              <linearGradient
-                id="diamondGold"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-                gradientTransform="rotate(135, 0.5, 0.5)"
-              >
-                <stop offset="0%" stopColor="#4338CA">
-                  <animate
-                    attributeName="stop-color"
-                    values="#4338CA;#7C3AED;#4338CA"
-                    dur="8s"
-                    repeatCount="indefinite"
-                  />
-                </stop>
-                <stop offset="100%" stopColor="#C7B9FF">
-                  <animate
-                    attributeName="stop-color"
-                    values="#C7B9FF;#6366F1;#C7B9FF"
-                    dur="8s"
-                    repeatCount="indefinite"
-                  />
-                </stop>
-              </linearGradient>
-            </defs>
-            <path
-              d="M26 2 L50 26 L26 50 L2 26 Z"
-              fill="url(#diamondGold)"
-            />
-          </svg>
+            style={{ borderRadius: 14 }}
+          />
         </div>
 
         {/* Title */}
