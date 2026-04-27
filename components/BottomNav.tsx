@@ -69,9 +69,11 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav" aria-label="Primary">
-      {LEFT_TABS.map((tab) => (
-        <NavButton key={tab.href} tab={tab} active={isActive(tab.href)} />
-      ))}
+      <div className="bottom-nav__side bottom-nav__side--left">
+        {LEFT_TABS.map((tab) => (
+          <NavButton key={tab.href} tab={tab} active={isActive(tab.href)} />
+        ))}
+      </div>
 
       {canCreate ? (
         <Link
@@ -92,9 +94,11 @@ export default function BottomNav() {
         </button>
       )}
 
-      {RIGHT_TABS.map((tab) => (
-        <NavButton key={tab.href} tab={tab} active={isActive(tab.href)} />
-      ))}
+      <div className="bottom-nav__side bottom-nav__side--right">
+        {RIGHT_TABS.map((tab) => (
+          <NavButton key={tab.href} tab={tab} active={isActive(tab.href)} />
+        ))}
+      </div>
     </nav>
   );
 }

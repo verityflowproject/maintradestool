@@ -650,8 +650,8 @@ export default function ContactClient({ firstName }: Props) {
         <div style={{ borderTop: '1px solid var(--quartz-border)', paddingTop: 16 }}>
           <p style={{ fontFamily: 'var(--font-dm-sans), sans-serif', fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
             Or email us directly:{' '}
-            <a href="mailto:support@verityflow.io" style={{ color: 'var(--text-muted)' }}>
-              support@verityflow.io
+            <a href="mailto:contact@verityflow.io" style={{ color: 'var(--text-muted)' }}>
+              contact@verityflow.io
             </a>
           </p>
         </div>

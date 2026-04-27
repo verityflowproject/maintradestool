@@ -12,6 +12,7 @@ import {
   IMPERSONATION_COOKIE,
   parseImpersonationCookie,
 } from "@/lib/admin/impersonation";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const syne = Syne({
@@ -101,6 +102,7 @@ export default async function RootLayout({
             </UpgradeGateProvider>
           </ToastProvider>
         </SessionProviderShell>
+        <Analytics />
       </body>
     </html>
   );

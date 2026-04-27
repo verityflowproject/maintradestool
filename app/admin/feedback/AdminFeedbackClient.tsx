@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 type ContactType = 'feature_request' | 'bug_report' | 'feedback' | 'support' | 'partnership' | 'other';
 type ContactStatus = 'new' | 'reviewing' | 'planned' | 'shipped' | 'closed' | 'wont_fix';
@@ -168,13 +170,22 @@ export default function AdminFeedbackClient() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: '3rem' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '1.5rem 1rem' }}>
-        <div style={{ marginBottom: '1.25rem' }}>
-          <h1 style={{ fontFamily: 'var(--font-syne)', fontSize: '1.4rem', fontWeight: 700, margin: '0 0 0.25rem' }}>
-            Feedback &amp; Submissions
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
-            {total} total
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.25rem' }}>
+          <Link
+            href="/admin"
+            aria-label="Back to admin"
+            style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 style={{ fontFamily: 'var(--font-syne)', fontSize: '1.4rem', fontWeight: 700, margin: '0 0 0.25rem' }}>
+              Feedback &amp; Submissions
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
+              {total} total
+            </p>
+          </div>
         </div>
 
         {/* Filters */}

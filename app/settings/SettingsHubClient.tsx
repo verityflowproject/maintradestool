@@ -18,6 +18,7 @@ import {
   CreditCard,
   FileText,
   HelpCircle,
+  History,
   MessageSquare,
   LogOut,
   Trash2,
@@ -58,6 +59,7 @@ function PlanBadge({ planState, trialEndsAt }: { planState: PlanState; trialEnds
 interface NavRowProps {
   icon: React.ReactNode;
   label: string;
+  sublabel?: string;
   href?: string;
   external?: boolean;
   onClick?: () => void;
@@ -65,14 +67,19 @@ interface NavRowProps {
   accent?: boolean;
 }
 
-function NavRow({ icon, label, href, external, onClick, danger, accent }: NavRowProps) {
+function NavRow({ icon, label, sublabel, href, external, onClick, danger, accent }: NavRowProps) {
   const cls = `settings-nav-row${danger ? ' settings-nav-row--danger' : ''}${accent ? ' settings-nav-row--accent' : ''}`;
 
   const inner = (
     <>
       <span className="settings-nav-row__left">
         <span className="settings-nav-row__icon">{icon}</span>
-        <span className="settings-nav-row__label">{label}</span>
+        <span className="settings-nav-row__label-wrap">
+          <span className="settings-nav-row__label">{label}</span>
+          {sublabel && (
+            <span className="settings-nav-row__sublabel">{sublabel}</span>
+          )}
+        </span>
       </span>
       <ChevronRight size={16} className="settings-nav-row__arrow" />
     </>
@@ -182,14 +189,18 @@ export default function SettingsHubClient({
         <NavRow
           icon={<HelpCircle size={18} />}
           label="Help Center"
-          href="https://help.verityflow.com"
-          external
+          href="/help"
         />
         <NavRow
           icon={<MessageSquare size={18} />}
           label="Contact Support"
-          href="mailto:support@verityflow.com"
-          external
+          href="/contact?type=support"
+        />
+        <NavRow
+          icon={<History size={18} />}
+          label="My Submissions"
+          sublabel="Bug reports, feedback & support requests"
+          href="/contact/history"
         />
         <NavRow icon={<FileText size={18} />} label="Terms & Privacy" href="/legal" />
       </Section>

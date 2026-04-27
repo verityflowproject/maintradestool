@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Trash2, Wand2 } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronUp, Trash2, Wand2 } from 'lucide-react';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 
 interface JobPart {
@@ -75,6 +75,28 @@ function inputCls(
   return `${base}${warn}`;
 }
 
+// ── Step header component ─────────────────────────────────────────────────────
+
+function StepHeader({
+  step,
+  title,
+  helper,
+}: {
+  step: number;
+  title: string;
+  helper?: string;
+}) {
+  return (
+    <div className="job-form-step-header">
+      <div className="job-form-step-badge">{step}</div>
+      <div>
+        <p className="job-form-step-title">{title}</p>
+        {helper && <p className="job-form-step-helper">{helper}</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function JobForm({
   defaultRate,
   defaultMarkup,
@@ -112,9 +134,7 @@ export default function JobForm({
   const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
 
   const [newCustomerMode, setNewCustomerMode] = useState(false);
-  const [showSchedule, setShowSchedule] = useState(
-    !!(initialValues?.scheduledDate),
-  );
+  const [showSchedule, setShowSchedule] = useState(!!(initialValues?.scheduledDate));
   const [customerQuery, setCustomerQuery] = useState('');
   const [searchResults, setSearchResults] = useState<CustomerResult[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -279,7 +299,8 @@ export default function JobForm({
 
   return (
     <div className="job-form-wrapper">
-      {/* Header */}
+
+      {/* ── Page header ── */}
       <header className="job-form-header">
         <button
           type="button"
@@ -297,7 +318,7 @@ export default function JobForm({
             style={{ marginLeft: 'auto' }}
             onClick={() => router.push('/jobs/new/voice')}
           >
-            Use voice instead
+            Use voice
           </button>
         )}
       </header>
@@ -313,7 +334,6 @@ export default function JobForm({
                 : 'AI parsed your recording — review and edit anything below.'}
             </span>
           </div>
-
           <details className="ai-transcript-details">
             <summary className="ai-transcript-toggle">Show transcript ▾</summary>
             <textarea
@@ -325,14 +345,20 @@ export default function JobForm({
         </div>
       )}
 
-      {/* ── Section 1: Customer ── */}
+      {/* ══════════════════════════════════
+          STEP 1 — Who's it for?
+      ══════════════════════════════════ */}
       <section className="job-form-section">
-        <p className="section-label">Customer</p>
+        <StepHeader
+          step={1}
+          title="Who's it for?"
+          helper="Search an existing customer or fill in their details."
+        />
 
-        {/* Search */}
+        {/* Customer search */}
         <div className="customer-search-wrap" ref={dropdownRef}>
           <input
-            className="input-field"
+            className="input-field job-form-customer-search"
             placeholder="Search existing customers…"
             value={customerQuery}
             onChange={(e) => setCustomerQuery(e.target.value)}
@@ -357,37 +383,39 @@ export default function JobForm({
           )}
         </div>
 
-        {/* Snapshot fields */}
-        <input
-          className={inputCls('input-field', 'customerName', uncertainFields, editedFields)}
-          placeholder="Customer name  e.g. Mike Johnson"
-          value={form.customerName}
-          onChange={(e) => {
-            patchForm({ customerName: e.target.value, customerId: null });
-            markEdited('customerName');
-          }}
-        />
-        <input
-          className={inputCls('input-field', 'customerPhone', uncertainFields, editedFields)}
-          type="tel"
-          placeholder="Phone  e.g. 817-555-0192"
-          value={form.customerPhone}
-          onChange={(e) => {
-            patchForm({ customerPhone: e.target.value, customerId: null });
-            markEdited('customerPhone');
-          }}
-        />
-        <input
-          className={inputCls('input-field', 'customerAddress', uncertainFields, editedFields)}
-          placeholder="Address  e.g. 123 Main St, Fort Worth"
-          value={form.customerAddress}
-          onChange={(e) => {
-            patchForm({ customerAddress: e.target.value, customerId: null });
-            markEdited('customerAddress');
-          }}
-        />
+        {/* Snapshot fields — in a card for visual grouping */}
+        <div className="job-form-customer-card glass-card">
+          <input
+            className={inputCls('input-field job-form-customer-field', 'customerName', uncertainFields, editedFields)}
+            placeholder="Full name  e.g. Mike Johnson"
+            value={form.customerName}
+            onChange={(e) => {
+              patchForm({ customerName: e.target.value, customerId: null });
+              markEdited('customerName');
+            }}
+          />
+          <input
+            className={inputCls('input-field job-form-customer-field', 'customerPhone', uncertainFields, editedFields)}
+            type="tel"
+            placeholder="Phone  e.g. 817-555-0192"
+            value={form.customerPhone}
+            onChange={(e) => {
+              patchForm({ customerPhone: e.target.value, customerId: null });
+              markEdited('customerPhone');
+            }}
+          />
+          <input
+            className={inputCls('input-field job-form-customer-field job-form-customer-field--last', 'customerAddress', uncertainFields, editedFields)}
+            placeholder="Address  e.g. 123 Main St, Fort Worth"
+            value={form.customerAddress}
+            onChange={(e) => {
+              patchForm({ customerAddress: e.target.value, customerId: null });
+              markEdited('customerAddress');
+            }}
+          />
+        </div>
 
-        {/* + New Customer toggle */}
+        {/* New customer email toggle */}
         {!newCustomerMode ? (
           <button
             type="button"
@@ -397,7 +425,7 @@ export default function JobForm({
               patchForm({ createNewCustomer: true, customerId: null });
             }}
           >
-            + New Customer
+            + Save as new customer
           </button>
         ) : (
           <div className="new-customer-block">
@@ -423,13 +451,20 @@ export default function JobForm({
         )}
       </section>
 
-      {/* ── Section 2: Job Details ── */}
+      {/* ══════════════════════════════════
+          STEP 2 — What's the work?
+      ══════════════════════════════════ */}
       <section className="job-form-section">
-        <p className="section-label">Job Details</p>
+        <StepHeader
+          step={2}
+          title="What's the work?"
+          helper="Title is required. Schedule is optional."
+        />
 
+        {/* Title — required, primary focus */}
         <input
           className={`${inputCls('input-field', 'title', uncertainFields, editedFields)}${titleError ? ' input-field--error' : ''}`}
-          placeholder="Job title  e.g. Water heater replacement"
+          placeholder="Job title  e.g. Water heater replacement *"
           value={form.title}
           onChange={(e) => {
             patchForm({ title: e.target.value });
@@ -439,6 +474,7 @@ export default function JobForm({
         />
         {titleError && <p className="field-error">{titleError}</p>}
 
+        {/* Description */}
         <textarea
           className={`${inputCls('input-field', 'description', uncertainFields, editedFields)} job-textarea`}
           placeholder="What was done, what was found, any follow-up needed…"
@@ -449,185 +485,206 @@ export default function JobForm({
           }}
         />
 
-        <div className="pill-group">
-          {(['residential', 'commercial', 'other'] as const).map((type) => (
-            <button
-              key={type}
-              type="button"
-              className={`btn-ghost pill${form.jobType === type ? ' selected' : ''}`}
-              onClick={() => {
-                patchForm({ jobType: type });
-                markEdited('jobType');
-              }}
-            >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          ))}
+        {/* Job type pills */}
+        <div>
+          <p className="job-form-field-label">Job type</p>
+          <div className="pill-group">
+            {(['residential', 'commercial', 'other'] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                className={`btn-ghost pill${form.jobType === type ? ' selected' : ''}`}
+                onClick={() => {
+                  patchForm({ jobType: type });
+                  markEdited('jobType');
+                }}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-      </section>
 
-      {/* ── Section 3: Schedule (optional) ── */}
-      <section className="job-form-section">
-        <p className="section-label">Schedule</p>
-
-        {!showSchedule ? (
+        {/* Schedule — collapsible sub-block inside this section */}
+        <div className="job-form-schedule-block">
           <button
             type="button"
-            className="link-accent"
-            onClick={() => setShowSchedule(true)}
-          >
-            Add date &amp; time +
-          </button>
-        ) : (
-          <div className="schedule-fields">
-            <input
-              className={inputCls('input-field', 'scheduledDate', uncertainFields, editedFields)}
-              type="date"
-              value={form.scheduledDate}
-              onChange={(e) => {
-                patchForm({ scheduledDate: e.target.value });
-                markEdited('scheduledDate');
-              }}
-            />
-            <div className="schedule-time-row">
-              <input
-                className="input-field"
-                type="time"
-                placeholder="Start time"
-                value={form.scheduledStart}
-                onChange={(e) => patchForm({ scheduledStart: e.target.value })}
-              />
-              <input
-                className="input-field"
-                type="time"
-                placeholder="End time"
-                value={form.scheduledEnd}
-                onChange={(e) => patchForm({ scheduledEnd: e.target.value })}
-              />
-            </div>
-            <button
-              type="button"
-              className="link-accent"
-              onClick={() => {
+            className="job-form-schedule-toggle"
+            onClick={() => {
+              if (showSchedule) {
                 setShowSchedule(false);
                 patchForm({ scheduledDate: '', scheduledStart: '', scheduledEnd: '' });
-              }}
-            >
-              Remove schedule
-            </button>
-          </div>
-        )}
+              } else {
+                setShowSchedule(true);
+              }
+            }}
+          >
+            <span>Date &amp; time</span>
+            {showSchedule
+              ? <ChevronUp size={16} />
+              : <ChevronDown size={16} />}
+          </button>
+
+          {showSchedule && (
+            <div className="schedule-fields" style={{ marginTop: 10 }}>
+              <input
+                className={inputCls('input-field', 'scheduledDate', uncertainFields, editedFields)}
+                type="date"
+                value={form.scheduledDate}
+                onChange={(e) => {
+                  patchForm({ scheduledDate: e.target.value });
+                  markEdited('scheduledDate');
+                }}
+              />
+              <div className="schedule-time-row">
+                <input
+                  className="input-field"
+                  type="time"
+                  placeholder="Start time"
+                  value={form.scheduledStart}
+                  onChange={(e) => patchForm({ scheduledStart: e.target.value })}
+                />
+                <input
+                  className="input-field"
+                  type="time"
+                  placeholder="End time"
+                  value={form.scheduledEnd}
+                  onChange={(e) => patchForm({ scheduledEnd: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* ── Section 4: Labor ── */}
+      {/* ══════════════════════════════════
+          STEP 3 — Pricing
+      ══════════════════════════════════ */}
       <section className="job-form-section">
-        <p className="section-label">Labor</p>
+        <StepHeader
+          step={3}
+          title="Pricing"
+          helper="Labour hours, rate, and any parts or materials used."
+        />
 
-        <div className="labor-row">
-          <input
-            className={inputCls('input-field', 'laborHours', uncertainFields, editedFields)}
-            type="number"
-            min={0}
-            step={0.5}
-            placeholder="Hours  e.g. 2.5"
-            value={form.laborHours}
-            onChange={(e) => {
-              patchForm({ laborHours: e.target.value === '' ? '' : Number(e.target.value) });
-              markEdited('laborHours');
-            }}
-          />
-          <input
-            className={inputCls('input-field', 'laborRate', uncertainFields, editedFields)}
-            type="number"
-            min={0}
-            placeholder="Rate $"
-            value={form.laborRate}
-            onChange={(e) => {
-              patchForm({ laborRate: e.target.value === '' ? '' : Number(e.target.value) });
-              markEdited('laborRate');
-            }}
-          />
+        {/* Labor sub-block */}
+        <div className="job-form-pricing-block glass-card">
+          <p className="job-form-field-label" style={{ marginBottom: 8 }}>Labour</p>
+          <div className="labor-row">
+            <input
+              className={inputCls('input-field', 'laborHours', uncertainFields, editedFields)}
+              type="number"
+              min={0}
+              step={0.5}
+              placeholder="Hours  e.g. 2.5"
+              value={form.laborHours}
+              onChange={(e) => {
+                patchForm({ laborHours: e.target.value === '' ? '' : Number(e.target.value) });
+                markEdited('laborHours');
+              }}
+            />
+            <input
+              className={inputCls('input-field', 'laborRate', uncertainFields, editedFields)}
+              type="number"
+              min={0}
+              placeholder="Rate $"
+              value={form.laborRate}
+              onChange={(e) => {
+                patchForm({ laborRate: e.target.value === '' ? '' : Number(e.target.value) });
+                markEdited('laborRate');
+              }}
+            />
+          </div>
+          {laborTotal > 0 && (
+            <p className="money-display" style={{ marginTop: 8 }}>
+              Labour total: ${fmt(laborTotal)}
+            </p>
+          )}
         </div>
 
-        <p className="money-display">
-          Labor total: ${fmt(laborTotal)}
-        </p>
+        {/* Parts sub-block */}
+        <div>
+          <p className="job-form-field-label">Parts &amp; materials</p>
+
+          {form.parts.map((p, i) => (
+            <div key={i} className="glass-card part-row">
+              {/* Row 1: name full-width */}
+              <input
+                className="input-field part-name"
+                placeholder="Part name"
+                value={p.name}
+                onChange={(e) => updatePart(i, { name: e.target.value })}
+              />
+              {/* Row 2: qty / cost / markup / total / remove */}
+              <input
+                className="input-field part-qty"
+                type="number"
+                min={0}
+                placeholder="Qty"
+                value={p.quantity}
+                onChange={(e) =>
+                  updatePart(i, { quantity: e.target.value === '' ? '' : Number(e.target.value) })
+                }
+              />
+              <input
+                className="input-field part-cost"
+                type="number"
+                min={0}
+                placeholder="Cost $"
+                value={p.unitCost}
+                onChange={(e) =>
+                  updatePart(i, { unitCost: e.target.value === '' ? '' : Number(e.target.value) })
+                }
+              />
+              <input
+                className="input-field part-markup"
+                type="number"
+                min={0}
+                placeholder="Markup %"
+                value={p.markup}
+                onChange={(e) =>
+                  updatePart(i, { markup: e.target.value === '' ? '' : Number(e.target.value) })
+                }
+              />
+              <span className="money-display part-total">
+                ${fmt(calcPartTotal(p))}
+              </span>
+              <button
+                type="button"
+                className="part-remove"
+                onClick={() => removePart(i)}
+                aria-label="Remove part"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            className="btn-ghost add-part-btn"
+            onClick={addPart}
+          >
+            + Add Part
+          </button>
+
+          {form.parts.length > 0 && partsTotal > 0 && (
+            <p className="money-display" style={{ marginTop: 4 }}>
+              Parts total: ${fmt(partsTotal)}
+            </p>
+          )}
+        </div>
       </section>
 
-      {/* ── Section 5: Parts & Materials ── */}
+      {/* ══════════════════════════════════
+          STEP 4 — Review & Save
+      ══════════════════════════════════ */}
       <section className="job-form-section">
-        <p className="section-label">Parts &amp; Materials</p>
-
-        {form.parts.map((p, i) => (
-          <div key={i} className="glass-card part-row">
-            <input
-              className="input-field part-name"
-              placeholder="Part name"
-              value={p.name}
-              onChange={(e) => updatePart(i, { name: e.target.value })}
-            />
-            <input
-              className="input-field part-qty"
-              type="number"
-              min={0}
-              placeholder="Qty"
-              value={p.quantity}
-              onChange={(e) =>
-                updatePart(i, { quantity: e.target.value === '' ? '' : Number(e.target.value) })
-              }
-            />
-            <input
-              className="input-field part-cost"
-              type="number"
-              min={0}
-              placeholder="Cost $"
-              value={p.unitCost}
-              onChange={(e) =>
-                updatePart(i, { unitCost: e.target.value === '' ? '' : Number(e.target.value) })
-              }
-            />
-            <input
-              className="input-field part-markup"
-              type="number"
-              min={0}
-              placeholder="Markup %"
-              value={p.markup}
-              onChange={(e) =>
-                updatePart(i, { markup: e.target.value === '' ? '' : Number(e.target.value) })
-              }
-            />
-            <span className="money-display part-total">
-              ${fmt(calcPartTotal(p))}
-            </span>
-            <button
-              type="button"
-              className="part-remove"
-              onClick={() => removePart(i)}
-              aria-label="Remove part"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          className="btn-ghost add-part-btn"
-          onClick={addPart}
-        >
-          + Add Part
-        </button>
-
-        {form.parts.length > 0 && (
-          <p className="money-display">
-            Parts total: ${fmt(partsTotal)}
-          </p>
-        )}
-      </section>
-
-      {/* ── Section 6: Totals Summary ── */}
-      <section className="job-form-section">
-        <p className="section-label">Totals</p>
+        <StepHeader
+          step={4}
+          title="Review &amp; save"
+          helper="Set tax rate, check your total, then save."
+        />
 
         <div className="glass-card totals-card">
           <div className="totals-row">
@@ -635,7 +692,7 @@ export default function JobForm({
             <span className="money-display">${fmt(subtotal)}</span>
           </div>
           <div className="totals-row">
-            <span className="totals-label">Tax Rate</span>
+            <span className="totals-label">Tax rate</span>
             <div className="tax-rate-input-wrap">
               <input
                 className={`${inputCls('input-field', 'taxRate', uncertainFields, editedFields)} tax-input`}
@@ -661,10 +718,8 @@ export default function JobForm({
             <span className="money-display money-display--total">${fmt(total)}</span>
           </div>
         </div>
-      </section>
 
-      {/* ── Save Buttons ── */}
-      <div className="job-form-actions">
+        {/* Warnings */}
         {submitError && <p className="field-error">{submitError}</p>}
         {showWarnBanner && !isLowConfidence && (
           <p className="field-error" style={{ color: 'var(--warning)' }}>
@@ -672,24 +727,34 @@ export default function JobForm({
           </p>
         )}
 
-        <button
-          type="button"
-          className="btn-ghost"
-          disabled={submitting}
-          onClick={() => handleSubmit('draft')}
-        >
-          {submitting ? 'Saving…' : 'Save as Draft'}
-        </button>
+        {/* Action buttons */}
+        <div className="job-form-actions">
+          <button
+            type="button"
+            className={`btn-accent${shaking ? ' shake' : ''}`}
+            disabled={submitting}
+            onClick={() => handleSubmit('complete')}
+          >
+            {submitting ? 'Saving…' : aiParsed ? 'Save & Generate Invoice →' : 'Mark Complete'}
+          </button>
+          <button
+            type="button"
+            className="job-form-draft-btn"
+            disabled={submitting}
+            onClick={() => handleSubmit('draft')}
+          >
+            {submitting ? 'Saving…' : 'Save as draft'}
+          </button>
+        </div>
+      </section>
 
-        <button
-          type="button"
-          className={`btn-accent${shaking ? ' shake' : ''}`}
-          disabled={submitting}
-          onClick={() => handleSubmit('complete')}
-        >
-          {submitting ? 'Saving…' : aiParsed ? 'Save & Generate Invoice →' : 'Mark Complete'}
-        </button>
-      </div>
+      {/* ── Sticky running total chip ── */}
+      {total > 0 && (
+        <div className="job-form-sticky-total" aria-live="polite">
+          <span className="job-form-sticky-total__label">Running total</span>
+          <span className="job-form-sticky-total__amount">${fmt(total)}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Bell, ChevronRight, Mic, RefreshCw } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  Tooltip,
+  ResponsiveContainer,
+  type TooltipProps,
+} from 'recharts';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import type { PlanState } from '@/lib/planState';
 
@@ -100,33 +108,63 @@ function SkeletonRecentJobs() {
   );
 }
 
-// ── Sparkline ──────────────────────────────────────────────────────────
+// ── Weekly area chart ──────────────────────────────────────────────────
 
-function Sparkline({ data }: { data: WeekDay[] }) {
-  const max = Math.max(...data.map((d) => d.total), 1);
-  const todayStr = new Date().toISOString().slice(0, 10);
+function WeeklyTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      className="glass-card"
+      style={{ padding: '8px 14px', fontSize: 12, lineHeight: 1.5, pointerEvents: 'none' }}
+    >
+      <p style={{ color: 'var(--text-muted)', margin: '0 0 2px' }}>{label}</p>
+      <p style={{ color: 'var(--accent-text)', fontWeight: 700, margin: 0 }}>
+        {formatCurrency(payload[0].value ?? 0)}
+      </p>
+    </div>
+  );
+}
+
+function WeeklyAreaChart({ data }: { data: WeekDay[] }) {
+  const chartData = data.map((d) => ({
+    day: DAY_LETTERS[new Date(d.date + 'T12:00:00').getDay()],
+    date: d.date,
+    earned: d.total,
+  }));
 
   return (
-    <div className="sparkline">
-      {data.map((d) => {
-        const isToday = d.date === todayStr;
-        const isZero = d.total === 0;
-        const heightPct = isZero ? 3 : Math.max((d.total / max) * 100, 3);
-        const cls = `sparkline__bar${isToday ? ' is-today' : ''}${isZero ? ' is-zero' : ''}`;
-        return (
-          <div key={d.date} className="sparkline__col">
-            <div
-              className={cls}
-              style={{ height: `${heightPct}%` }}
-              title={formatCurrency(d.total)}
-            />
-            <span className="sparkline__label">
-              {DAY_LETTERS[new Date(d.date + 'T12:00:00').getDay()]}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    <ResponsiveContainer width="100%" height={140}>
+      <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
+        <defs>
+          <linearGradient id="weeklyFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.45} />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="day"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-dm-sans)' }}
+        />
+        <Tooltip
+          content={<WeeklyTooltip />}
+          cursor={{ stroke: 'var(--quartz-border)', strokeWidth: 1 }}
+        />
+        <Area
+          type="monotone"
+          dataKey="earned"
+          stroke="var(--accent)"
+          strokeWidth={2.5}
+          fill="url(#weeklyFill)"
+          dot={{ r: 3, fill: 'var(--accent)', strokeWidth: 0 }}
+          activeDot={{ r: 5, fill: 'var(--accent-text)', stroke: 'var(--accent)', strokeWidth: 2 }}
+          isAnimationActive
+          animationDuration={1100}
+          animationEasing="ease-out"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -312,7 +350,7 @@ export default function DashboardClient({ firstName, businessName, planState, tr
         </div>
       )}
 
-      {/* Weekly earnings sparkline */}
+      {/* Weekly earnings area chart */}
       <div className="glass-card weekly-card">
         <div className="weekly-card__head">
           <span className="weekly-card__title">This Week</span>
@@ -321,7 +359,7 @@ export default function DashboardClient({ firstName, businessName, planState, tr
         {loading && !data ? (
           <SkeletonSparkline />
         ) : (
-          <Sparkline data={data?.weeklyEarnings ?? []} />
+          <WeeklyAreaChart data={data?.weeklyEarnings ?? []} />
         )}
       </div>
 
