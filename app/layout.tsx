@@ -96,10 +96,10 @@ export default async function RootLayout({
                 style={impersonation ? { paddingTop: 36 } : undefined}
               >
                 <TrialBanner />
-                <SettingsCornerButton />
                 <div className="page-content">{children}</div>
                 <BottomNav />
               </div>
+              <SettingsCornerButton />
               <InstallPrompt />
             </UpgradeGateProvider>
           </ToastProvider>

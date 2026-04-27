@@ -206,27 +206,29 @@ p {
 /* ----- Settings corner button ----- */
 .settings-corner-btn {
   position: fixed;
-  top: calc(12px + env(safe-area-inset-top));
+  top: calc(14px + env(safe-area-inset-top));
   right: 16px;
-  z-index: 90;
+  z-index: 200;
   width: 38px;
   height: 38px;
   border-radius: 999px;
-  background: rgba(14, 14, 22, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--quartz-border);
+  background: rgba(28, 28, 42, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--text-secondary, #a0a0b8);
   text-decoration: none;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 .settings-corner-btn:hover,
 .settings-corner-btn:focus-visible {
   color: var(--accent-text);
   border-color: var(--accent);
+  background: rgba(40, 36, 70, 0.95);
   outline: none;
 }
 
