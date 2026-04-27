@@ -9,7 +9,7 @@ import {
   XAxis,
   Tooltip,
   ResponsiveContainer,
-  type TooltipProps,
+  type TooltipContentProps,
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import type { PlanState } from '@/lib/planState';
@@ -110,7 +110,11 @@ function SkeletonRecentJobs() {
 
 // ── Weekly area chart ──────────────────────────────────────────────────
 
-function WeeklyTooltip({ active, payload, label }: TooltipProps<number, string>) {
+function WeeklyTooltip({
+  active,
+  payload,
+  label,
+}: Partial<TooltipContentProps<number, string>>) {
   if (!active || !payload?.length) return null;
   return (
     <div
@@ -119,7 +123,7 @@ function WeeklyTooltip({ active, payload, label }: TooltipProps<number, string>)
     >
       <p style={{ color: 'var(--text-muted)', margin: '0 0 2px' }}>{label}</p>
       <p style={{ color: 'var(--accent-text)', fontWeight: 700, margin: 0 }}>
-        {formatCurrency(payload[0].value ?? 0)}
+        {formatCurrency((payload[0]?.value as number | undefined) ?? 0)}
       </p>
     </div>
   );
