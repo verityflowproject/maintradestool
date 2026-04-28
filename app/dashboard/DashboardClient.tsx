@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AlertCircle, Bell, ChevronRight, Mic, RefreshCw } from 'lucide-react';
+import { AlertCircle, Bell, ChevronRight, Mic, RefreshCw, Zap } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import type { PlanState } from '@/lib/planState';
+import CardCaptureNudge from '@/components/billing/CardCaptureNudge';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -300,6 +301,26 @@ export default function DashboardClient({ firstName, businessName, planState, tr
         </div>
       </div>
 
+      {/* Early bird deal card */}
+      {planState.earlyBirdEligible && planState.earlyBirdEndsAt && (
+        <Link
+          href="/settings/billing"
+          className="glass-card eb-action-card"
+          style={{ textDecoration: 'none' }}
+        >
+          <div className="eb-action-card__icon">
+            <Zap size={18} fill="#f59e0b" color="#f59e0b" />
+          </div>
+          <div className="eb-action-card__body">
+            <p className="eb-action-card__title">Lock in $19/mo forever</p>
+            <p className="eb-action-card__sub">
+              7 days only · ends {new Date(planState.earlyBirdEndsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · save $120/yr vs standard annual
+            </p>
+          </div>
+          <span className="eb-action-card__cta">Claim Deal →</span>
+        </Link>
+      )}
+
       {/* Overdue alert */}
       {data && data.overdueCount > 0 && (
         <div className="dashboard-overdue glass-card">
@@ -489,6 +510,12 @@ export default function DashboardClient({ firstName, businessName, planState, tr
           </div>
         )}
       </section>
+
+      {/* Card capture nudge — shown once after first job logged on trial */}
+      <CardCaptureNudge
+        jobsLogged={data?.recentJobs.length ?? 0}
+        planIsTrial={planState.plan === 'trial'}
+      />
     </div>
   );
 }

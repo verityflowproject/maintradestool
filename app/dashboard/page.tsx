@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   const [user, recentFR, shippedCalloutsRaw] = await Promise.all([
     User.findById(session.user.id)
-      .select('firstName businessName plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
+      .select('firstName businessName plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince createdAt')
       .lean<{
         firstName: string;
         businessName: string;
@@ -24,6 +24,7 @@ export default async function DashboardPage() {
         subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | null;
         subscriptionEndsAt: Date | null;
         pastDueSince: Date | null;
+        createdAt: Date;
       } | null>(),
     ContactSubmission.findOne({
       userId: session.user.id,
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
 
   const planState: PlanState = user
     ? getPlanState(user)
-    : { plan: 'trial', daysLeft: 0, isActive: true, canCreateJobs: true, canGenerateInvoices: true, canUseVoice: true, canEnableBooking: true };
+    : { plan: 'trial', daysLeft: 0, isActive: true, canCreateJobs: true, canGenerateInvoices: true, canUseVoice: true, canEnableBooking: true, earlyBirdEligible: false, earlyBirdEndsAt: null };
 
   const shippedCallouts = shippedCalloutsRaw.map((c) => ({
     _id: String(c._id),

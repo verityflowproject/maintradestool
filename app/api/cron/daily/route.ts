@@ -11,7 +11,11 @@ import { sendEmail } from '@/lib/email/sendEmail';
 import {
   overdueReminderTemplate,
   trialWarningTemplate,
+  trialMidpointTemplate,
   trialExpiredTemplate,
+  winBackTemplate,
+  dunningEscalationTemplate,
+  earlyBirdEndingTemplate,
 } from '@/lib/email/templates';
 
 function startOfDay(date = new Date()): Date {
@@ -84,7 +88,7 @@ export async function GET(req: NextRequest) {
     results.overdueRemindersError = String(err);
   }
 
-  // Task 3 — Trial ending warnings
+  // Task 3 — Trial ending warnings + midpoint email
   try {
     const trialUsers = await User.find({
       plan: 'trial',
@@ -98,9 +102,9 @@ export async function GET(req: NextRequest) {
           (new Date(user.trialEndsAt).getTime() - now.getTime()) / 86_400_000
         );
 
-        type WarningKey = 'sevenDay' | 'threeDay' | 'oneDay';
+        type WarningKey = 'sevenDay' | 'threeDay' | 'oneDay' | 'midpoint';
         const checkpoints: Array<{ days: number; key: WarningKey }> = [
-          { days: 7, key: 'sevenDay' },
+          { days: 7, key: 'midpoint' },  // midpoint email at 7 days left (day 7 of 14)
           { days: 3, key: 'threeDay' },
           { days: 1, key: 'oneDay' },
         ];
@@ -109,7 +113,7 @@ export async function GET(req: NextRequest) {
           if (daysLeft === days && !user.trialWarningsSent?.[key]) {
             let stats: { jobsCount: number; revenue: number } | undefined;
 
-            if (days === 3) {
+            if (days === 7 || days === 3) {
               const [jobsCount, revenueResult] = await Promise.all([
                 Job.countDocuments({ userId: user._id }),
                 Invoice.aggregate([
@@ -123,15 +127,23 @@ export async function GET(req: NextRequest) {
               };
             }
 
-            await sendEmail({
-              to: user.email,
-              ...trialWarningTemplate(user, daysLeft, stats),
-            });
+            if (key === 'midpoint' && stats) {
+              await sendEmail({
+                to: user.email,
+                ...trialMidpointTemplate(user, stats),
+              });
+            } else {
+              await sendEmail({
+                to: user.email,
+                ...trialWarningTemplate(user, daysLeft, stats),
+              });
+            }
 
             user.trialWarningsSent = user.trialWarningsSent ?? {
               sevenDay: false,
               threeDay: false,
               oneDay: false,
+              midpoint: false,
             };
             user.trialWarningsSent[key] = true;
             await user.save();
@@ -174,6 +186,106 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error('[cron/daily] Task 4 error:', err);
     results.expiredTrialsError = String(err);
+  }
+
+  // Task 5 — Win-back email (30 days after subscription ended)
+  try {
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 86_400_000);
+    const thirtyOneDaysAgo = new Date(now.getTime() - 31 * 86_400_000);
+
+    const winBackCandidates = await User.find({
+      plan: { $in: ['cancelled', 'expired'] },
+      subscriptionEndsAt: { $gte: thirtyOneDaysAgo, $lte: thirtyDaysAgo },
+      winBackSent: { $ne: true },
+    });
+
+    let winBackSent = 0;
+    for (const user of winBackCandidates) {
+      try {
+        await sendEmail({ to: user.email, ...winBackTemplate(user) });
+        user.winBackSent = true;
+        await user.save();
+        winBackSent++;
+      } catch (err) {
+        console.error('[cron/daily] Win-back error for user', user._id, err);
+      }
+    }
+    results.winBackSent = winBackSent;
+  } catch (err) {
+    console.error('[cron/daily] Task 5 error:', err);
+    results.winBackError = String(err);
+  }
+
+  // Task 6 — Dunning escalation (day 5 past_due warning)
+  try {
+    const GRACE_DAYS = 7;
+    const pastDueUsers = await User.find({
+      subscriptionStatus: 'past_due',
+      pastDueSince: { $ne: null },
+      pastDueReminder2Sent: { $ne: true },
+    });
+
+    let dunningEscalations = 0;
+    for (const user of pastDueUsers) {
+      try {
+        const daysSincePastDue = Math.floor(
+          (now.getTime() - new Date(user.pastDueSince!).getTime()) / 86_400_000
+        );
+        if (daysSincePastDue >= 4 && daysSincePastDue <= 6) {
+          const graceDaysLeft = Math.max(0, GRACE_DAYS - daysSincePastDue);
+          await sendEmail({
+            to: user.email,
+            ...dunningEscalationTemplate(user, graceDaysLeft),
+          });
+          user.pastDueReminder2Sent = true;
+          await user.save();
+          dunningEscalations++;
+        }
+      } catch (err) {
+        console.error('[cron/daily] Dunning escalation error for user', user._id, err);
+      }
+    }
+    results.dunningEscalationsSent = dunningEscalations;
+  } catch (err) {
+    console.error('[cron/daily] Task 6 error:', err);
+    results.dunningEscalationsError = String(err);
+  }
+
+  // Task 7 — Early-bird ending email (day 5 of trial, ~2 days before window closes)
+  try {
+    const EARLY_BIRD_MS = 7 * 86_400_000;
+    const fiveDaysMs = 5 * 86_400_000;
+    const sevenDaysMs = 7 * 86_400_000;
+
+    // Find trial users who signed up 5-7 days ago (haven't exhausted EB window) and haven't had this email sent
+    const ebCandidates = await User.find({
+      plan: 'trial',
+      createdAt: {
+        $gte: new Date(now.getTime() - sevenDaysMs),
+        $lte: new Date(now.getTime() - fiveDaysMs),
+      },
+      earlyBirdEndingEmailSent: { $ne: true },
+      $or: [{ stripeSubscriptionId: null }, { stripeSubscriptionId: { $exists: false } }],
+    });
+
+    let earlyBirdEmailsSent = 0;
+    for (const user of ebCandidates) {
+      try {
+        const earlyBirdEndsAt = new Date(new Date(user.createdAt).getTime() + EARLY_BIRD_MS);
+        if (earlyBirdEndsAt.getTime() <= now.getTime()) continue; // already expired
+        const hoursLeft = Math.ceil((earlyBirdEndsAt.getTime() - now.getTime()) / 3_600_000);
+        await sendEmail({ to: user.email, ...earlyBirdEndingTemplate(user, hoursLeft) });
+        user.earlyBirdEndingEmailSent = true;
+        await user.save();
+        earlyBirdEmailsSent++;
+      } catch (err) {
+        console.error('[cron/daily] Early-bird ending email error for user', user._id, err);
+      }
+    }
+    results.earlyBirdEmailsSent = earlyBirdEmailsSent;
+  } catch (err) {
+    console.error('[cron/daily] Task 7 error:', err);
+    results.earlyBirdEmailsError = String(err);
   }
 
   return NextResponse.json({ ok: true, ...results });

@@ -11,7 +11,7 @@ export default async function BillingPage() {
 
   await dbConnect();
   const user = await User.findById(session.user.id)
-    .select('plan subscriptionStatus subscriptionPlan subscriptionEndsAt stripeCustomerId trialEndsAt')
+    .select('plan subscriptionStatus subscriptionPlan subscriptionEndsAt stripeCustomerId trialEndsAt createdAt')
     .lean();
 
   if (!user) redirect('/');
@@ -25,6 +25,7 @@ export default async function BillingPage() {
         subscriptionEndsAt={user.subscriptionEndsAt ? user.subscriptionEndsAt.toISOString() : null}
         hasStripeCustomer={!!user.stripeCustomerId}
         trialEndsAt={user.trialEndsAt ? user.trialEndsAt.toISOString() : null}
+        createdAt={user.createdAt ? (user.createdAt as Date).toISOString() : null}
       />
     </Suspense>
   );

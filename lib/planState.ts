@@ -16,9 +16,12 @@ export interface PlanState {
   canUseVoice: boolean;
   canEnableBooking: boolean;
   pastDueGraceDaysLeft?: number;
+  earlyBirdEligible: boolean;
+  earlyBirdEndsAt: string | null;
 }
 
 const GRACE_DAYS = 7;
+const EARLY_BIRD_DAYS = 7;
 
 function daysFromNow(date: Date | null | undefined): number {
   if (!date) return 0;
@@ -55,11 +58,16 @@ const NO_ACCESS: Pick<
 export function getPlanState(
   user: Pick<
     IUser,
-    'plan' | 'trialEndsAt' | 'subscriptionStatus' | 'subscriptionEndsAt' | 'pastDueSince'
+    'plan' | 'trialEndsAt' | 'subscriptionStatus' | 'subscriptionEndsAt' | 'pastDueSince' | 'createdAt'
   >,
 ): PlanState {
-  const { subscriptionStatus, subscriptionEndsAt, pastDueSince, trialEndsAt } = user;
+  const { subscriptionStatus, subscriptionEndsAt, pastDueSince, trialEndsAt, createdAt } = user;
   const now = Date.now();
+
+  // Early-bird window: first 7 days after account creation, trial only
+  const earlyBirdEndsAt = createdAt
+    ? new Date(new Date(createdAt).getTime() + EARLY_BIRD_DAYS * 86_400_000)
+    : null;
 
   // ── Active Pro subscription ────────────────────────────────────────────
   if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
@@ -67,6 +75,9 @@ export function getPlanState(
       plan: 'pro',
       daysLeft: daysFromNow(subscriptionEndsAt),
       ...FULL_ACCESS,
+      // Already subscribed — no longer eligible
+      earlyBirdEligible: false,
+      earlyBirdEndsAt: null,
     };
   }
 
@@ -80,12 +91,16 @@ export function getPlanState(
         daysLeft: daysFromNow(subscriptionEndsAt),
         ...FULL_ACCESS,
         pastDueGraceDaysLeft: graceDaysLeft,
+        earlyBirdEligible: false,
+        earlyBirdEndsAt: null,
       };
     }
     return {
       plan: 'expired',
       daysLeft: 0,
       ...NO_ACCESS,
+      earlyBirdEligible: false,
+      earlyBirdEndsAt: null,
     };
   }
 
@@ -96,21 +111,28 @@ export function getPlanState(
         plan: 'cancelled_active',
         daysLeft: daysFromNow(subscriptionEndsAt),
         ...FULL_ACCESS,
+        earlyBirdEligible: false,
+        earlyBirdEndsAt: null,
       };
     }
     return {
       plan: 'cancelled_expired',
       daysLeft: 0,
       ...NO_ACCESS,
+      earlyBirdEligible: false,
+      earlyBirdEndsAt: null,
     };
   }
 
   // ── Trial ──────────────────────────────────────────────────────────────
   if (trialEndsAt && trialEndsAt.getTime() > now) {
+    const earlyBirdEligible = !!earlyBirdEndsAt && earlyBirdEndsAt.getTime() > now;
     return {
       plan: 'trial',
       daysLeft: daysFromNow(trialEndsAt),
       ...FULL_ACCESS,
+      earlyBirdEligible,
+      earlyBirdEndsAt: earlyBirdEligible && earlyBirdEndsAt ? earlyBirdEndsAt.toISOString() : null,
     };
   }
 
@@ -119,5 +141,7 @@ export function getPlanState(
     plan: 'expired',
     daysLeft: 0,
     ...NO_ACCESS,
+    earlyBirdEligible: false,
+    earlyBirdEndsAt: null,
   };
 }

@@ -11,7 +11,7 @@ export default async function NewJobPage() {
 
   await dbConnect();
   const user = await User.findById(session.user.id)
-    .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince hourlyRate partsMarkup')
+    .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince hourlyRate partsMarkup createdAt')
     .lean<{
       plan: 'trial' | 'pro' | 'cancelled';
       trialEndsAt: Date;
@@ -20,6 +20,7 @@ export default async function NewJobPage() {
       pastDueSince: Date | null;
       hourlyRate?: number;
       partsMarkup?: number;
+      createdAt: Date;
     } | null>();
 
   if (user) {

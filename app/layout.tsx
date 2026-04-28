@@ -7,6 +7,7 @@ import SessionProviderShell from "@/components/SessionProviderShell";
 import { ToastProvider } from "@/components/Toast/ToastProvider";
 import { UpgradeGateProvider } from "@/components/UpgradeGate/UpgradeGateProvider";
 import TrialBanner from "@/components/TrialBanner";
+import EarlyBirdBanner from "@/components/billing/EarlyBirdBanner";
 import InstallPrompt from "@/components/InstallPrompt";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import {
@@ -95,6 +96,7 @@ export default async function RootLayout({
                 className="app-shell"
                 style={impersonation ? { paddingTop: 36 } : undefined}
               >
+                <EarlyBirdBanner />
                 <TrialBanner />
                 <div className="page-content">{children}</div>
                 <BottomNav />

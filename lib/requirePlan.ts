@@ -20,13 +20,14 @@ export async function requireCapability(
   await dbConnect();
 
   const user = await User.findById(userId)
-    .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
+    .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince createdAt')
     .lean<{
       plan: 'trial' | 'pro' | 'cancelled';
       trialEndsAt: Date;
       subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | null;
       subscriptionEndsAt: Date | null;
       pastDueSince: Date | null;
+      createdAt: Date;
     } | null>();
 
   if (!user) {

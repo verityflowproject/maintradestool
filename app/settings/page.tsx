@@ -13,7 +13,7 @@ export default async function SettingsPage() {
   await dbConnect();
 
   const user = await User.findById(session.user.id)
-    .select('firstName businessName plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince password')
+    .select('firstName businessName plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince password createdAt')
     .lean<{
       firstName: string;
       businessName: string;
@@ -23,6 +23,7 @@ export default async function SettingsPage() {
       subscriptionEndsAt: Date | null;
       pastDueSince: Date | null;
       password?: string | null;
+      createdAt: Date;
     } | null>();
 
   if (!user) redirect('/');

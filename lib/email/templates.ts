@@ -8,16 +8,17 @@ type TemplateResult = Omit<SendEmailArgs, 'to'>;
 export function welcomeTemplate(user: Pick<IUser, '_id' | 'firstName' | 'email'>): TemplateResult {
   return {
     subject: `Welcome to VerityFlow, ${user.firstName}!`,
-    preheader: 'Your 30-day trial has started. Tap the mic to log your first job.',
+    preheader: 'Your 14-day Pro trial has started — no credit card required.',
     heading: `Welcome, ${user.firstName}!`,
     body: `
-      <p>You're all set. Your <strong>30-day free trial</strong> has started.</p>
+      <p>You're all set. Your <strong>14-day Pro trial</strong> has started — <strong>no credit card required</strong>.</p>
       <p>Here's how to get started:</p>
       <ol style="margin:12px 0;padding-left:20px;">
         <li style="margin-bottom:8px;"><strong>Tap the mic</strong> to voice-log your first job — describe what you did and we'll capture the details.</li>
         <li style="margin-bottom:8px;"><strong>Generate an invoice</strong> from any job with one tap.</li>
         <li style="margin-bottom:8px;"><strong>Send it</strong> to your customer by email or SMS.</li>
       </ol>
+      <p>At the end of your trial, choose a plan to keep going. Annual plan saves you 20% — we'll remind you a few days before so you're never caught off guard.</p>
       <p>Your data is yours, no lock-in. If you ever need help, just reply to this email.</p>
     `,
     ctaText: 'Go to Dashboard',
@@ -128,13 +129,34 @@ export function trialWarningTemplate(
 ): TemplateResult {
   let subject: string;
   let body: string;
+  let ctaText: string;
 
   const revenueStr = stats
     ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(stats.revenue)
     : null;
 
+  const annualCtaBlock = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+      <tr>
+        <td style="padding-right:8px;">
+          <a href="${APP_URL}/settings/billing?plan=annual"
+             style="display:block;text-align:center;background:#1E90FF;color:#fff;padding:11px 0;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+            Choose Annual — Save 20%
+          </a>
+        </td>
+        <td>
+          <a href="${APP_URL}/settings/billing?plan=monthly"
+             style="display:block;text-align:center;background:transparent;color:#555;border:1px solid #ddd;padding:11px 0;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+            Choose Monthly
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+
   if (daysLeft === 7) {
     subject = 'Your VerityFlow trial ends in 7 days';
+    ctaText = 'Upgrade to Pro';
     body = `
       <p>Hi ${user.firstName}, your free trial ends in <strong>7 days</strong>.</p>
       <p>After your trial, you'll lose access to:</p>
@@ -144,27 +166,39 @@ export function trialWarningTemplate(
         <li style="margin-bottom:6px;">Customer management</li>
         <li style="margin-bottom:6px;">Online booking page</li>
       </ul>
-      <p>Upgrade now to keep all your data and stay on top of your business.</p>
+      <p>Upgrade now to keep all your data and stay on top of your business. Choose annual and <strong>save 20%</strong> — it's $24/mo instead of $29/mo.</p>
     `;
   } else if (daysLeft === 3) {
-    subject = '3 days left on your VerityFlow trial';
+    subject = '3 days left — lock in 20% savings before your trial ends';
+    ctaText = 'Upgrade to Pro';
     const statsBlurb =
       stats && (stats.jobsCount > 0 || stats.revenue > 0)
         ? `<p style="background:#f5f5f5;border-radius:8px;padding:12px 16px;margin:16px 0;">
-            You've logged <strong>${stats.jobsCount} job${stats.jobsCount !== 1 ? 's' : ''}</strong> and earned <strong>${revenueStr}</strong> — don't lose that momentum.
+            You've logged <strong>${stats.jobsCount} job${stats.jobsCount !== 1 ? 's' : ''}</strong> and earned <strong>${revenueStr}</strong> with VerityFlow — don't lose that momentum.
            </p>`
         : '';
     body = `
-      <p>Hi ${user.firstName}, only <strong>3 days left</strong> on your trial — don't let the momentum stop.</p>
+      <p>Hi ${user.firstName}, only <strong>3 days left</strong> on your trial.</p>
       ${statsBlurb}
-      <p>Upgrade to VerityFlow Pro for just $29/month and keep everything running smoothly.</p>
+      <p>This is our final-week offer: lock in annual pricing at <strong>$24/mo</strong> (save $58/yr vs monthly) and never think about it again.</p>
+      ${annualCtaBlock}
+      <p style="color:#888;font-size:13px;">Or go monthly at $29/mo — cancel any time.</p>
     `;
   } else {
     subject = 'Your trial ends tomorrow — upgrade to keep going';
+    ctaText = 'Upgrade Now — Save 20% Annual';
     body = `
       <p>Hi ${user.firstName}, your trial ends <strong>tomorrow</strong>.</p>
-      <p>Upgrade now to keep logging jobs, generating invoices, and getting paid faster.</p>
-      <p style="color:#666;font-size:13px;">Your data is safe. Everything you've built stays intact when you upgrade — and we'll never delete it.</p>
+      <p>After midnight your access will be paused. Here's what you'll lose:</p>
+      <ul style="margin:12px 0;padding-left:20px;">
+        <li style="margin-bottom:6px;">&#10007; Voice job logging</li>
+        <li style="margin-bottom:6px;">&#10007; Invoice generation &amp; PDFs</li>
+        <li style="margin-bottom:6px;">&#10007; Customer management</li>
+        <li style="margin-bottom:6px;">&#10007; Public booking page</li>
+      </ul>
+      <p>Upgrade now and pick up exactly where you left off. Choose annual for <strong>$24/mo</strong> — that's $290/yr, saves you $58 vs monthly.</p>
+      ${annualCtaBlock}
+      <p style="color:#666;font-size:13px;">Your data is safe. Everything you've built stays intact — we'll never delete it.</p>
     `;
   }
 
@@ -173,7 +207,7 @@ export function trialWarningTemplate(
     preheader: subject,
     heading: `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left on your trial`,
     body,
-    ctaText: 'Upgrade to Pro',
+    ctaText,
     ctaUrl: `${APP_URL}/settings/billing`,
     userId: String(user._id),
     preferenceKey: 'trialReminders',
@@ -288,6 +322,181 @@ export function subscriptionCancelledTemplate(
       <p>If there's anything we could have done better, please reply to this email — we read every one.</p>
     `,
     ctaText: 'Resubscribe',
+    ctaUrl: `${APP_URL}/settings/billing`,
+    userId: String(user._id),
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'account notification',
+  };
+}
+
+// ── Lifecycle / conversion emails ────────────────────────────────────────────
+
+export function trialStartedTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>
+): TemplateResult {
+  return {
+    subject: `Your 14-day Pro trial is live, ${user.firstName} — claim $19/mo before day 7`,
+    preheader: 'Early Bird deal: $19/mo locked in forever if you upgrade in the next 7 days.',
+    heading: 'Pro access, 14 days. Plus an Early Bird deal.',
+    body: `
+      <p>Hi ${user.firstName}, you now have full Pro access for 14 days — no credit card required.</p>
+
+      <div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:10px;padding:16px 18px;margin:18px 0;">
+        <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#92400E;">⚡ EARLY BIRD DEAL — 7 days only</p>
+        <p style="margin:0 0 8px;color:#78350F;">Upgrade within your first 7 days and lock in <strong>$19/mo forever</strong> (instead of $29). Or go annual at <strong>$190/yr</strong> ($15.83/mo) — the best deal we offer, ever.</p>
+        <p style="margin:0;font-size:12px;color:#92400E;font-style:italic;">After day 7, the price returns to $29/mo and this offer is gone permanently.</p>
+      </div>
+
+      <p>Here's what's unlocked right now:</p>
+      <ul style="margin:12px 0;padding-left:20px;">
+        <li style="margin-bottom:8px;"><strong>Voice job logging</strong> — describe a job out loud, we capture every detail.</li>
+        <li style="margin-bottom:8px;"><strong>One-tap invoices</strong> — generate a professional PDF in seconds.</li>
+        <li style="margin-bottom:8px;"><strong>Customer management</strong> — full contact history in one place.</li>
+        <li style="margin-bottom:8px;"><strong>Public booking page</strong> — let customers request jobs directly.</li>
+      </ul>
+      <p style="color:#666;font-size:13px;">No surprise charges — ever. We'll remind you a few days before the Early Bird window closes.</p>
+    `,
+    ctaText: 'Claim Early Bird Deal →',
+    ctaUrl: `${APP_URL}/settings/billing`,
+    userId: String(user._id),
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'product update',
+  };
+}
+
+export function earlyBirdEndingTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  hoursLeft: number
+): TemplateResult {
+  const expiresAt = new Date(Date.now() + hoursLeft * 3_600_000);
+  const expiryStr = expiresAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  return {
+    subject: `2 days left on your $19/mo Early Bird deal, ${user.firstName}`,
+    preheader: `After ${expiryStr}, the price goes back to $29/mo permanently.`,
+    heading: "Your $19/mo deal expires soon.",
+    body: `
+      <p>Hi ${user.firstName}, just a heads-up — your Early Bird window closes on <strong>${expiryStr}</strong>.</p>
+
+      <div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:10px;padding:16px 18px;margin:18px 0;">
+        <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#92400E;">⚡ Early Bird ends in ~${hoursLeft} hours</p>
+        <p style="margin:0;color:#78350F;">After <strong>${expiryStr}</strong>, the price returns to <strong>$29/mo</strong> and this rate is gone permanently. Claim it now and pay $19/mo for as long as your subscription stays active.</p>
+      </div>
+
+      <p><strong>What you lock in:</strong></p>
+      <ul style="margin:12px 0;padding-left:20px;">
+        <li style="margin-bottom:8px;">$19/mo forever (saves $120/yr vs $29/mo standard)</li>
+        <li style="margin-bottom:8px;">Or choose annual at <strong>$190/yr ($15.83/mo)</strong> — even better value</li>
+        <li style="margin-bottom:8px;">All Pro features: voice logging, invoices, booking page, customer management</li>
+        <li style="margin-bottom:8px;">No lock-in — cancel any time, but the discount is yours to keep</li>
+      </ul>
+
+      <p style="font-size:13px;color:#666;">Annual stacking: with the Early Bird deal, annual becomes $190/yr. That's $15.83/mo — the lowest price VerityFlow will ever be. Monthly is $19 ($10/mo savings). Both beat the standard rate permanently.</p>
+    `,
+    ctaText: 'Claim $19/mo Before It Expires →',
+    ctaUrl: `${APP_URL}/settings/billing`,
+    userId: String(user._id),
+    preferenceKey: 'trialReminders',
+    preferenceLabel: 'trial reminder',
+  };
+}
+
+export function trialMidpointTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  stats: { jobsCount: number; revenue: number }
+): TemplateResult {
+  const revenueStr = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(stats.revenue);
+  const hasActivity = stats.jobsCount > 0 || stats.revenue > 0;
+
+  const statsBlurb = hasActivity
+    ? `<p style="background:#f0f8ff;border:1px solid #1E90FF;border-radius:8px;padding:14px 16px;margin:16px 0;color:#555;">
+        You've already logged <strong>${stats.jobsCount} job${stats.jobsCount !== 1 ? 's' : ''}</strong> and tracked <strong>${revenueStr}</strong> in revenue. That's real money VerityFlow is helping you collect.
+       </p>`
+    : `<p style="background:#f5f5f5;border-radius:8px;padding:12px 16px;margin:16px 0;">
+        You haven't logged a job yet — try tapping the mic from your dashboard and describe your last job. Takes 30 seconds.
+       </p>`;
+
+  return {
+    subject: `7 days in — here's your VerityFlow progress`,
+    preheader: hasActivity
+      ? `${stats.jobsCount} jobs logged. Keep the momentum going.`
+      : 'Log your first job — it takes 30 seconds.',
+    heading: 'Halfway through your trial',
+    body: `
+      <p>Hi ${user.firstName}, you're 7 days into your VerityFlow trial — 7 days left.</p>
+      ${statsBlurb}
+      <p>When your trial ends, choose annual for <strong>$24/mo</strong> (billed $290/yr) and save $58 vs monthly. Or go monthly at $29/mo — no lock-in either way.</p>
+    `,
+    ctaText: 'View Dashboard',
+    ctaUrl: `${APP_URL}/dashboard`,
+    userId: String(user._id),
+    preferenceKey: 'trialReminders',
+    preferenceLabel: 'trial reminder',
+  };
+}
+
+export function firstInvoicePaidTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  invoice: Pick<IInvoice, '_id' | 'invoiceNumber' | 'total'>,
+  customerName: string
+): TemplateResult {
+  const totalStr = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(invoice.total);
+  return {
+    subject: `Invoice paid — VerityFlow just paid for itself`,
+    preheader: `${totalStr} collected. Lock in annual and save $58/yr.`,
+    heading: `${totalStr} collected`,
+    body: `
+      <p>Hi ${user.firstName}, great news — <strong>${customerName}</strong> just paid invoice #${invoice.invoiceNumber} for <strong>${totalStr}</strong>.</p>
+      <p>That means VerityFlow has already more than paid for itself for the year on the annual plan. Every invoice from here is pure value.</p>
+      <p>If you're not on Pro yet, now's the best time — lock in annual at <strong>$24/mo</strong> and save 20% vs monthly.</p>
+    `,
+    ctaText: 'Upgrade to Annual — Save 20%',
+    ctaUrl: `${APP_URL}/settings/billing`,
+    userId: String(user._id),
+    preferenceKey: 'invoicePaid',
+    preferenceLabel: 'invoice notification',
+  };
+}
+
+export function winBackTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>
+): TemplateResult {
+  return {
+    subject: `${user.firstName}, come back — 50% off your first month`,
+    preheader: 'Your data is still here. Reactivate at half price.',
+    heading: "We'd love to have you back",
+    body: `
+      <p>Hi ${user.firstName}, it's been a month since your VerityFlow subscription ended.</p>
+      <p><strong>Your data is still safe</strong> — every job, invoice, and customer is right where you left it.</p>
+      <p>We'd love to have you back. Use this exclusive offer: <strong>50% off your first month</strong> when you reactivate today.</p>
+      <p style="background:#f0f8ff;border:1px solid #1E90FF;border-radius:8px;padding:14px 16px;margin:16px 0;text-align:center;">
+        <strong style="font-size:18px;color:#050912;">50% off month 1</strong><br>
+        <span style="color:#555;font-size:13px;">Use code applied automatically at checkout</span>
+      </p>
+      <p style="color:#666;font-size:13px;">This offer expires in 7 days. After that, standard pricing applies.</p>
+    `,
+    ctaText: 'Reactivate — 50% Off',
+    ctaUrl: `${APP_URL}/settings/billing`,
+    userId: String(user._id),
+    preferenceKey: 'productUpdates',
+    preferenceLabel: 'account notification',
+  };
+}
+
+export function dunningEscalationTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  graceDaysLeft: number
+): TemplateResult {
+  return {
+    subject: `Final notice — VerityFlow Pro suspends in ${graceDaysLeft} day${graceDaysLeft !== 1 ? 's' : ''}`,
+    preheader: 'Update your payment method now to avoid losing access.',
+    heading: 'Action required: payment still failing',
+    body: `
+      <p>Hi ${user.firstName}, we've tried to collect your VerityFlow Pro payment several times without success.</p>
+      <p><strong>Your account will be suspended in ${graceDaysLeft} day${graceDaysLeft !== 1 ? 's' : ''}</strong> unless you update your payment method.</p>
+      <p>This takes less than a minute — click below to update your card and restore uninterrupted access.</p>
+      <p style="color:#888;font-size:13px;">Once your account is suspended, you'll lose access to job logging, invoicing, and your booking page. Your data remains safe.</p>
+    `,
+    ctaText: 'Update Payment Method',
     ctaUrl: `${APP_URL}/settings/billing`,
     userId: String(user._id),
     preferenceKey: 'productUpdates',

@@ -8,7 +8,7 @@ import Job from '@/lib/models/Job';
 import Customer from '@/lib/models/Customer';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
-import { invoicePaidTemplate } from '@/lib/email/templates';
+import { invoicePaidTemplate, firstInvoicePaidTemplate } from '@/lib/email/templates';
 
 export const runtime = 'nodejs';
 
@@ -79,14 +79,23 @@ export async function PATCH(
     }
   }
 
-  // Invoice paid notification email
+  // Invoice paid notification + first-paid milestone email
   if (transitioningToPaid) {
-    const paidUser = await User.findById(session.user.id).lean();
+    const paidUser = await User.findById(session.user.id);
     if (paidUser) {
       sendEmail({
         to: paidUser.email,
         ...invoicePaidTemplate(paidUser, invoice, invoice.customerName || 'Customer'),
       }).catch(console.error);
+
+      if (!paidUser.firstInvoicePaidSent) {
+        paidUser.firstInvoicePaidSent = true;
+        await paidUser.save();
+        sendEmail({
+          to: paidUser.email,
+          ...firstInvoicePaidTemplate(paidUser, invoice, invoice.customerName || 'Customer'),
+        }).catch(console.error);
+      }
     }
   }
 

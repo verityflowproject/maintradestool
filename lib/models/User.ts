@@ -23,6 +23,7 @@ export interface ITrialWarningsSent {
   sevenDay: boolean;
   threeDay: boolean;
   oneDay: boolean;
+  midpoint: boolean;
 }
 
 export interface IUser extends Document {
@@ -55,6 +56,11 @@ export interface IUser extends Document {
   subscriptionPlan: 'monthly' | 'annual' | null;
   subscriptionEndsAt: Date | null;
   pastDueSince: Date | null;
+  pastDueReminder2Sent: boolean;
+  firstInvoicePaidSent: boolean;
+  winBackSent: boolean;
+  cardCapturePromptShown: boolean;
+  earlyBirdEndingEmailSent: boolean;
   onboardingCompleted: boolean;
   bookingSlug: string | null;
   bookingEnabled: boolean;
@@ -93,6 +99,7 @@ const TrialWarningsSentSchema = new Schema<ITrialWarningsSent>(
     sevenDay: { type: Boolean, default: false },
     threeDay: { type: Boolean, default: false },
     oneDay: { type: Boolean, default: false },
+    midpoint: { type: Boolean, default: false },
   },
   { _id: false },
 );
@@ -201,11 +208,11 @@ const UserSchema = new Schema<IUser>({
   },
   trialWarningsSent: {
     type: TrialWarningsSentSchema,
-    default: () => ({ sevenDay: false, threeDay: false, oneDay: false }),
+    default: () => ({ sevenDay: false, threeDay: false, oneDay: false, midpoint: false }),
   },
   trialEndsAt: {
     type: Date,
-    default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    default: () => new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   },
   stripeCustomerId: {
     type: String,
@@ -232,6 +239,26 @@ const UserSchema = new Schema<IUser>({
   pastDueSince: {
     type: Date,
     default: null,
+  },
+  pastDueReminder2Sent: {
+    type: Boolean,
+    default: false,
+  },
+  firstInvoicePaidSent: {
+    type: Boolean,
+    default: false,
+  },
+  winBackSent: {
+    type: Boolean,
+    default: false,
+  },
+  cardCapturePromptShown: {
+    type: Boolean,
+    default: false,
+  },
+  earlyBirdEndingEmailSent: {
+    type: Boolean,
+    default: false,
   },
   onboardingCompleted: {
     type: Boolean,

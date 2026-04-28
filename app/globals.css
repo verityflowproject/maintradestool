@@ -6108,6 +6108,14 @@ a.request-detail__contact:hover { text-decoration: underline; }
   text-transform: uppercase;
 }
 
+.billing-plan-card__badge--earlybird {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .billing-plan-card__price {
   font-family: var(--font-syne), Syne, sans-serif;
   font-weight: 700;
@@ -6324,6 +6332,11 @@ a.request-detail__contact:hover { text-decoration: underline; }
   color: var(--text-primary);
 }
 
+.trial-banner--neutral {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
 .trial-banner--warning {
   background: rgba(56, 189, 248, 0.15);
   border-bottom-color: var(--warning);
@@ -6374,6 +6387,122 @@ a.request-detail__contact:hover { text-decoration: underline; }
 .trial-banner__dismiss:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Early Bird Banner ────────────────────────────────────────────────── */
+
+.early-bird-banner {
+  position: sticky;
+  top: 0;
+  z-index: 50; /* above trial banner */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: linear-gradient(90deg, #92400e 0%, #b45309 40%, #d97706 100%);
+  border-bottom: 1px solid #f59e0b;
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fffbeb;
+}
+
+.early-bird-banner__icon {
+  flex-shrink: 0;
+  color: #fde68a;
+}
+
+.early-bird-banner__text {
+  flex: 1;
+  color: #fffbeb;
+}
+
+.early-bird-banner__timer {
+  display: inline-block;
+  font-weight: 700;
+  color: #fde68a;
+  font-variant-numeric: tabular-nums;
+  animation: eb-pulse 2s ease-in-out infinite;
+}
+
+@keyframes eb-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.early-bird-banner__cta {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 4px 12px;
+  border-radius: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.early-bird-banner__cta:hover {
+  background: #fbbf24;
+  color: #451a03;
+}
+
+/* ── Early Bird Dashboard Action Card ─────────────────────────────────── */
+
+.eb-action-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.06);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin: 0;
+}
+
+.eb-action-card:hover {
+  border-color: rgba(245, 158, 11, 0.6);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.eb-action-card__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.eb-action-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.eb-action-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.eb-action-card__sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.eb-action-card__cta {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f59e0b;
+  white-space: nowrap;
 }
 
 /* ── Upgrade Gate Modal ───────────────────────────────────────────────── */

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
 import PlanCards from '@/components/billing/PlanCards';
+import CancelFlowModal from '@/components/billing/CancelFlowModal';
 
 interface Props {
   plan: 'trial' | 'pro' | 'cancelled' | 'expired';
@@ -14,7 +15,10 @@ interface Props {
   subscriptionEndsAt: string | null;
   hasStripeCustomer: boolean;
   trialEndsAt: string | null;
+  createdAt: string | null;
 }
+
+const EARLY_BIRD_MS = 7 * 24 * 60 * 60 * 1000;
 
 const DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -40,7 +44,12 @@ export default function BillingClient({
   subscriptionPlan,
   subscriptionEndsAt,
   trialEndsAt,
+  createdAt,
 }: Props) {
+  const isEarlyBirdEligible =
+    plan === 'trial' &&
+    !!createdAt &&
+    Date.now() < new Date(createdAt).getTime() + EARLY_BIRD_MS;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -48,6 +57,8 @@ export default function BillingClient({
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [loadingResume, setLoadingResume] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [loadingSwitchAnnual, setLoadingSwitchAnnual] = useState(false);
 
   // Show toast based on return from Stripe
   useEffect(() => {
@@ -100,6 +111,24 @@ export default function BillingClient({
       setLoadingPortal(false);
     }
   }, [toast]);
+
+  const handleSwitchToAnnual = useCallback(async () => {
+    setLoadingSwitchAnnual(true);
+    try {
+      const res = await fetch('/api/billing/switch-to-annual', { method: 'POST' });
+      if (res.ok) {
+        toast.success("Switched to annual — you're saving $58/yr!");
+        router.refresh();
+      } else {
+        const data = (await res.json()) as { error?: string };
+        toast.error(data.error ?? 'Could not switch plans.');
+      }
+    } catch {
+      toast.error('Something went wrong.');
+    } finally {
+      setLoadingSwitchAnnual(false);
+    }
+  }, [toast, router]);
 
   const handleResume = useCallback(async () => {
     setLoadingResume(true);
@@ -163,13 +192,22 @@ export default function BillingClient({
               {subscriptionPlan === 'monthly' ? 'Monthly' : 'Annual'} ·{' '}
               renews {formatDate(subscriptionEndsAt)}
             </p>
-            <button
-              className="billing-manage-link"
-              onClick={handlePortal}
-              disabled={loadingPortal}
-            >
-              {loadingPortal ? 'Opening…' : 'Manage billing →'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button
+                className="billing-manage-link"
+                onClick={handlePortal}
+                disabled={loadingPortal}
+              >
+                {loadingPortal ? 'Opening…' : 'Update payment →'}
+              </button>
+              <button
+                className="billing-manage-link"
+                style={{ color: 'var(--text-muted)' }}
+                onClick={() => setShowCancelModal(true)}
+              >
+                Cancel
+              </button>
+            </div>
           </>
         )}
 
@@ -224,14 +262,59 @@ export default function BillingClient({
         )}
       </div>
 
+      {/* Annual upsell — only for active monthly Pro users */}
+      {isProActive && subscriptionPlan === 'monthly' && (
+        <div
+          className="glass-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '14px 16px',
+            borderColor: 'rgba(30,144,255,0.3)',
+            background: 'rgba(30,144,255,0.05)',
+          }}
+        >
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              Switch to annual — save $58/yr
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+              $24/mo instead of $29/mo. We'll prorate your current period.
+            </p>
+          </div>
+          <button
+            className="btn-accent"
+            style={{ padding: '8px 14px', whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={handleSwitchToAnnual}
+            disabled={loadingSwitchAnnual}
+          >
+            {loadingSwitchAnnual ? 'Switching…' : 'Save 20%'}
+          </button>
+        </div>
+      )}
+
       {/* Plan selection — shown when not actively subscribed */}
       {showPlanSelection && (
         <>
           <p className="settings-section-heading" style={{ marginBottom: 12 }}>
             CHOOSE A PLAN
           </p>
-          <PlanCards onSelect={handleCheckout} loadingPlan={loadingPlan} />
+          <PlanCards onSelect={handleCheckout} loadingPlan={loadingPlan} earlyBird={isEarlyBirdEligible} />
         </>
+      )}
+
+      {/* Cancel flow modal */}
+      {showCancelModal && (
+        <CancelFlowModal
+          subscriptionPlan={subscriptionPlan}
+          onClose={() => setShowCancelModal(false)}
+          onCancelled={() => {
+            setShowCancelModal(false);
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );

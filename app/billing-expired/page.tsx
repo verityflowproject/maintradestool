@@ -19,7 +19,7 @@ export default async function BillingExpiredPage({
   await dbConnect();
 
   const user = await User.findById(session.user.id)
-    .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince stripeCustomerId')
+    .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince stripeCustomerId createdAt')
     .lean<{
       plan: 'trial' | 'pro' | 'cancelled';
       trialEndsAt: Date;
@@ -27,6 +27,7 @@ export default async function BillingExpiredPage({
       subscriptionEndsAt: Date | null;
       pastDueSince: Date | null;
       stripeCustomerId: string | null;
+      createdAt: Date;
     } | null>();
 
   if (!user) redirect('/onboarding');
