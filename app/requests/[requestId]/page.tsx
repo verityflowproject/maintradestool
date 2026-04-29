@@ -39,6 +39,7 @@ export default async function RequestDetailPage({ params }: Props) {
         preferredTime: request.preferredTime,
         message: request.message,
         status: request.status,
+        linkedJobId: request.linkedJobId ? request.linkedJobId.toString() : null,
         createdAt: request.createdAt.toISOString(),
       }}
     />

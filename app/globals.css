@@ -7193,3 +7193,243 @@ a.request-detail__contact:hover { text-decoration: underline; }
   color: var(--text-secondary);
   margin-bottom: 20px;
 }
+
+/* ── Jobs — main tabs (Pipeline / Jobs / Requests) ─────────────────── */
+.jobs-main-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 0 4px;
+  border-bottom: 1px solid var(--quartz-border);
+  margin-bottom: 4px;
+}
+
+.jobs-main-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border-radius: 8px 8px 0 0;
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s, background 0.15s;
+}
+
+.jobs-main-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+}
+
+.jobs-main-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-glass);
+  font-weight: 600;
+}
+
+.jobs-main-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
+.jobs-main-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg-void);
+  color: var(--text-muted);
+  font-family: var(--font-jetbrains), monospace;
+}
+
+.jobs-main-tab.active .jobs-main-tab__count {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+}
+
+.jobs-main-tab__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+}
+
+/* ── Pipeline list ─────────────────────────────────────────────────── */
+.pipeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.pipeline-card {
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 14px;
+  transition: opacity 0.1s;
+}
+
+.pipeline-card:active {
+  opacity: 0.75;
+}
+
+.pipeline-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pipeline-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pipeline-card__date {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pipeline-card__title {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  line-height: 1.35;
+}
+
+.pipeline-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.pipeline-card__customer {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pipeline-card__detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pipeline-card__detail--addr {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.pipeline-card__bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.pipeline-card__total {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-left: auto;
+}
+
+.pipeline-card__linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: var(--accent-text);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+/* Source pills */
+.pipeline-source-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-syne), Syne, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pipeline-source-pill--request {
+  background: rgba(200, 180, 250, 0.15);
+  color: var(--accent-text);
+  border: 1px solid rgba(200, 180, 250, 0.35);
+}
+
+.pipeline-source-pill--job {
+  background: rgba(52, 211, 153, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+/* Converted status badge */
+.status-badge-request[data-status="converted"] {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+/* ── Booking link — open button styling ────────────────────────────── */
+.booking-url-text {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking-url-text:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}

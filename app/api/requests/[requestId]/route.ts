@@ -72,7 +72,7 @@ export async function PATCH(
   }
 
   const body = (await req.json().catch(() => null)) as {
-    status?: 'accepted' | 'declined' | 'viewed';
+    status?: 'accepted' | 'declined' | 'viewed' | 'converted';
   } | null;
 
   if (!body?.status) {

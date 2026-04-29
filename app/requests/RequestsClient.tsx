@@ -13,7 +13,7 @@ export interface RequestRow {
   preferredDate: string;
   preferredTime: string;
   message: string;
-  status: 'new' | 'viewed' | 'accepted' | 'declined';
+  status: 'new' | 'viewed' | 'accepted' | 'declined' | 'converted';
   createdAt: string;
 }
 
@@ -26,6 +26,7 @@ const STATUS_LABEL: Record<RequestRow['status'], string> = {
   viewed: 'Viewed',
   accepted: 'Accepted',
   declined: 'Declined',
+  converted: 'Converted',
 };
 
 const DATE_FMT = new Intl.DateTimeFormat('en-US', {

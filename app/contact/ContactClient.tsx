@@ -180,6 +180,26 @@ type Submitter = (body: Record<string, unknown>) => Promise<void>;
 
 // ── Individual forms ──────────────────────────────────────────────────────────
 
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <p style={{
+      fontFamily: 'var(--font-dm-sans), sans-serif',
+      fontSize: 12,
+      fontWeight: 600,
+      color: 'var(--text-secondary)',
+      margin: '0 0 6px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+    }}>
+      {children}
+      {required && (
+        <span style={{ color: 'var(--danger)', fontSize: 11 }}>*</span>
+      )}
+    </p>
+  );
+}
+
 function FeatureRequestForm({ onSubmit, loading }: { onSubmit: Submitter; loading: boolean }) {
   const [title, setTitle] = useState('');
   const [problemSolved, setProblemSolved] = useState('');
@@ -189,6 +209,7 @@ function FeatureRequestForm({ onSubmit, loading }: { onSubmit: Submitter; loadin
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ type: 'feature_request', title, problemSolved, description: description || problemSolved, willingToPay }); }}>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Feature name</FieldLabel>
         <input
           className="input-field"
           placeholder="e.g. Send invoices via WhatsApp"
@@ -200,20 +221,22 @@ function FeatureRequestForm({ onSubmit, loading }: { onSubmit: Submitter; loadin
         <CharCounter value={title} max={100} />
       </div>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>What problem does this solve for you?</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 100, resize: 'vertical' }}
-          placeholder="I lose customers because... / It takes too long when... / I waste 30 minutes a day on..."
+          placeholder="I lose customers because… / It takes too long when… / I waste 30 minutes a day on…"
           value={problemSolved}
           onChange={(e) => setProblemSolved(e.target.value)}
           required
         />
       </div>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel>Additional details (optional)</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 80, resize: 'vertical' }}
-          placeholder="Any specific details, examples, or how you'd want this to work."
+          placeholder="Specific examples, edge cases, or how you'd want this to work."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
@@ -235,6 +258,7 @@ function BugReportForm({ onSubmit, loading, deviceInfo }: { onSubmit: Submitter;
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ type: 'bug_report', title, priority, description, stepsToReproduce }); }}>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Bug title</FieldLabel>
         <input
           className="input-field"
           placeholder="e.g. Voice recording cuts off after 30 seconds"
@@ -246,24 +270,26 @@ function BugReportForm({ onSubmit, loading, deviceInfo }: { onSubmit: Submitter;
         <CharCounter value={title} max={100} />
       </div>
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>How bad is it?</p>
+        <FieldLabel required>How bad is it?</FieldLabel>
         <PriorityPills value={priority} onChange={setPriority} />
       </div>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>What happened?</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 100, resize: 'vertical' }}
-          placeholder="Describe what you tried to do and what went wrong"
+          placeholder="Describe what you tried to do and what went wrong."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
         />
       </div>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel>Steps to reproduce (optional)</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 80, resize: 'vertical' }}
-          placeholder="1. I went to... 2. I tapped... 3. Then..."
+          placeholder="1. I went to… 2. I tapped… 3. Then…"
           value={stepsToReproduce}
           onChange={(e) => setStepsToReproduce(e.target.value)}
         />
@@ -287,17 +313,18 @@ function FeedbackForm({ onSubmit, loading }: { onSubmit: Submitter; loading: boo
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ type: 'feedback', description, rating: rating ?? undefined }); }}>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Your feedback</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 140, resize: 'vertical' }}
-          placeholder="Tell us anything — what's working, what's not, what you wish was different..."
+          placeholder="What's working, what's not, what you wish was different…"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
         />
       </div>
       <div style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 8 }}>How are we doing overall?</p>
+        <FieldLabel>Overall rating (optional)</FieldLabel>
         <EmojiRating value={rating} onChange={setRating} />
       </div>
       <button type="submit" className="btn-accent" style={{ width: '100%' }} disabled={loading}>
@@ -314,19 +341,21 @@ function SupportForm({ onSubmit, loading }: { onSubmit: Submitter; loading: bool
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ type: 'support', title, description }); }}>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>What do you need help with?</FieldLabel>
         <input
           className="input-field"
-          placeholder="What do you need help with?"
+          placeholder="e.g. I can't send my invoice, my account won't load…"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
       </div>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Describe the issue</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 100, resize: 'vertical' }}
-          placeholder="Describe the issue"
+          placeholder="What were you trying to do? What happened instead?"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
@@ -349,19 +378,21 @@ function OtherForm({ onSubmit, loading }: { onSubmit: Submitter; loading: boolea
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ type: 'other', title, description }); }}>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Subject</FieldLabel>
         <input
           className="input-field"
-          placeholder="Subject"
+          placeholder="What's this about?"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
       </div>
       <div style={{ marginBottom: 16 }}>
+        <FieldLabel required>Message</FieldLabel>
         <textarea
           className="input-field"
           style={{ minHeight: 140, resize: 'vertical' }}
-          placeholder="Message"
+          placeholder="Your full message here…"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required

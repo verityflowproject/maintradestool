@@ -41,6 +41,8 @@ export interface IJob extends Document {
   invoiceId: Types.ObjectId | null;
   invoiceNumber: string | null;
 
+  bookingRequestId: Types.ObjectId | null;
+
   voiceTranscript: string | null;
   aiParsed: boolean;
 
@@ -114,6 +116,12 @@ const JobSchema = new Schema<IJob>({
     default: null,
   },
   invoiceNumber: { type: String, default: null },
+
+  bookingRequestId: {
+    type: Schema.Types.ObjectId,
+    ref: 'BookingRequest',
+    default: null,
+  },
 
   voiceTranscript: { type: String, default: null },
   aiParsed: { type: Boolean, default: false },

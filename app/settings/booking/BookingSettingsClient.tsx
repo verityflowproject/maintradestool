@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Copy, Check, ChevronLeft, X, Eye } from 'lucide-react';
+import { Copy, Check, ChevronLeft, X, Eye, ExternalLink } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
 
 interface BookingProfile {
@@ -49,7 +49,11 @@ export default function BookingSettingsClient({
 
   const slugCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const APP_URL = 'verityflow.com';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://verityflow.com';
+  const APP_URL = origin.includes('localhost') ? origin : 'verityflow.com';
+  const bookingHref = origin.includes('localhost')
+    ? `${origin}/book/${slug}`
+    : `https://verityflow.com/book/${slug}`;
 
   const handleToggle = useCallback(async () => {
     const newEnabled = !enabled;
@@ -76,10 +80,10 @@ export default function BookingSettingsClient({
   }, [enabled, slug, toast]);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(`https://${APP_URL}/book/${slug}`);
+    navigator.clipboard.writeText(bookingHref);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [slug]);
+  }, [bookingHref]);
 
   const handleSlugBlur = useCallback(async () => {
     const candidate = slugInput.toLowerCase().trim();
@@ -199,18 +203,37 @@ export default function BookingSettingsClient({
                 {slugStatus === 'err' && <span className="slug-status-err">✗ Taken</span>}
               </div>
             ) : (
-              <span className="booking-url-text">
-                {APP_URL}/book/<strong>{slug}</strong>
-              </span>
+              <a
+                className="booking-url-text"
+                href={bookingHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open your live booking page"
+              >
+                {APP_URL.replace(/^https?:\/\//, '')}/book/<strong>{slug}</strong>
+              </a>
             )}
             <div className="booking-url-actions">
               {!editingSlug && (
-                <button
-                  className="copy-btn-ghost"
-                  onClick={() => setEditingSlug(true)}
-                >
-                  Edit
-                </button>
+                <>
+                  <a
+                    className="copy-btn-ghost"
+                    href={bookingHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Open booking page"
+                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <ExternalLink size={13} />
+                    Open
+                  </a>
+                  <button
+                    className="copy-btn-ghost"
+                    onClick={() => setEditingSlug(true)}
+                  >
+                    Edit
+                  </button>
+                </>
               )}
               <button className="copy-btn-ghost" onClick={handleCopy} aria-label="Copy link">
                 {copied ? <Check size={14} /> : <Copy size={14} />}

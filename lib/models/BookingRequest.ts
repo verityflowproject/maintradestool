@@ -10,7 +10,8 @@ export interface IBookingRequest extends Document {
   preferredDate: string;
   preferredTime: string;
   message: string;
-  status: 'new' | 'viewed' | 'accepted' | 'declined';
+  status: 'new' | 'viewed' | 'accepted' | 'declined' | 'converted';
+  linkedJobId: Types.ObjectId | null;
   createdAt: Date;
 }
 
@@ -30,8 +31,13 @@ const BookingRequestSchema = new Schema<IBookingRequest>({
   message: { type: String, default: '' },
   status: {
     type: String,
-    enum: ['new', 'viewed', 'accepted', 'declined'],
+    enum: ['new', 'viewed', 'accepted', 'declined', 'converted'],
     default: 'new',
+  },
+  linkedJobId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Job',
+    default: null,
   },
   createdAt: { type: Date, default: Date.now },
 });

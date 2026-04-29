@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Link as LinkIcon } from 'lucide-react';
 import { Types } from 'mongoose';
 import { dbConnect } from '@/lib/mongodb';
 import Job, { type IJob } from '@/lib/models/Job';
@@ -55,6 +55,46 @@ export default async function JobDetailPage({
           )}
         </div>
       </header>
+
+      {/* ── Booking request backlink ── */}
+      {job.bookingRequestId && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 14px',
+            background: 'var(--accent-dim)',
+            border: '1px solid var(--accent)',
+            borderRadius: 10,
+            marginBottom: 8,
+          }}
+        >
+          <LinkIcon size={13} style={{ color: 'var(--accent-text)', flexShrink: 0 }} />
+          <span
+            style={{
+              fontFamily: 'var(--font-dm-sans), sans-serif',
+              fontSize: 12,
+              color: 'var(--accent-text)',
+              flex: 1,
+            }}
+          >
+            Created from a booking request
+          </span>
+          <Link
+            href={`/requests/${job.bookingRequestId.toString()}`}
+            style={{
+              fontFamily: 'var(--font-dm-sans), sans-serif',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--accent-text)',
+              textDecoration: 'none',
+            }}
+          >
+            View request →
+          </Link>
+        </div>
+      )}
 
       {/* ── Customer ── */}
       {(job.customerName || job.customerPhone || job.customerAddress) && (

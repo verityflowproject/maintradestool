@@ -2,10 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Phone, Mail, MapPin, Calendar, Clock, MessageSquare, Briefcase } from 'lucide-react';
+import {
+  ChevronLeft,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Clock,
+  MessageSquare,
+  Briefcase,
+  ArrowRight,
+  Link as LinkIcon,
+} from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
 
-type RequestStatus = 'new' | 'viewed' | 'accepted' | 'declined';
+type RequestStatus = 'new' | 'viewed' | 'accepted' | 'declined' | 'converted';
 
 interface RequestDetail {
   _id: string;
@@ -18,6 +29,7 @@ interface RequestDetail {
   preferredTime: string;
   message: string;
   status: RequestStatus;
+  linkedJobId?: string | null;
   createdAt: string;
 }
 
@@ -30,6 +42,7 @@ const STATUS_LABEL: Record<RequestStatus, string> = {
   viewed: 'Viewed',
   accepted: 'Accepted',
   declined: 'Declined',
+  converted: 'Converted',
 };
 
 const DATE_FMT = new Intl.DateTimeFormat('en-US', {
@@ -44,7 +57,9 @@ export default function RequestDetailClient({ request: initial }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const [status, setStatus] = useState<RequestStatus>(initial.status);
+  const [linkedJobId, setLinkedJobId] = useState<string | null>(initial.linkedJobId ?? null);
   const [loading, setLoading] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   // Auto-mark viewed
   useEffect(() => {
@@ -84,17 +99,29 @@ export default function RequestDetailClient({ request: initial }: Props) {
     [initial._id, toast],
   );
 
-  const handleConvertToJob = useCallback(() => {
-    const prefill = {
-      name: initial.name,
-      phone: initial.phone,
-      email: initial.email,
-      address: initial.address,
-      serviceNeeded: initial.serviceNeeded,
-    };
-    sessionStorage.setItem('verityflow_prefill_customer', JSON.stringify(prefill));
-    router.push('/jobs/new/voice');
-  }, [initial, router]);
+  const handleConvertToJob = useCallback(async () => {
+    if (converting) return;
+    setConverting(true);
+    try {
+      const res = await fetch(`/api/requests/${initial._id}/convert`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { jobId: string };
+        setStatus('converted');
+        setLinkedJobId(data.jobId);
+        toast.success('Job created! Redirecting…');
+        router.push(`/jobs/${data.jobId}`);
+      } else {
+        const err = (await res.json()) as { error?: string };
+        toast.error(err.error ?? 'Failed to convert request.');
+      }
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setConverting(false);
+    }
+  }, [initial._id, converting, toast, router]);
 
   return (
     <div className="request-detail page-padding">
@@ -168,28 +195,47 @@ export default function RequestDetailClient({ request: initial }: Props) {
 
       {/* Action buttons */}
       <div className="request-detail__actions">
-        {status !== 'accepted' && status !== 'declined' && (
+        {status === 'converted' && linkedJobId ? (
+          /* Converted — show link back to job */
+          <button
+            className="btn-accent"
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            onClick={() => router.push(`/jobs/${linkedJobId}`)}
+          >
+            <LinkIcon size={15} />
+            Job created · View job
+            <ArrowRight size={15} />
+          </button>
+        ) : (
           <>
+            {status !== 'accepted' && status !== 'declined' && (
+              <>
+                <button
+                  className="btn-success"
+                  onClick={() => patch('accepted')}
+                  disabled={loading || converting}
+                >
+                  Accept
+                </button>
+                <button
+                  className="btn-danger"
+                  onClick={() => patch('declined')}
+                  disabled={loading || converting}
+                >
+                  Decline
+                </button>
+              </>
+            )}
             <button
-              className="btn-success"
-              onClick={() => patch('accepted')}
-              disabled={loading}
+              className="btn-secondary"
+              onClick={handleConvertToJob}
+              disabled={converting || loading}
             >
-              Accept
-            </button>
-            <button
-              className="btn-danger"
-              onClick={() => patch('declined')}
-              disabled={loading}
-            >
-              Decline
+              <Briefcase size={15} />
+              {converting ? 'Creating job…' : 'Convert to Job'}
             </button>
           </>
         )}
-        <button className="btn-secondary" onClick={handleConvertToJob}>
-          <Briefcase size={15} />
-          Convert to Job
-        </button>
       </div>
     </div>
   );

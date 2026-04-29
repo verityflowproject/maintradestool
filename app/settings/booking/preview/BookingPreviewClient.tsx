@@ -35,7 +35,9 @@ export default function BookingPreviewClient({
   phone,
   email,
 }: Props) {
-  const liveUrl = slug ? `${window?.location?.origin ?? ''}/book/${slug}` : null;
+  const liveUrl = slug
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://verityflow.com'}/book/${slug}`
+    : null;
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg-void)' }}>
@@ -83,23 +85,24 @@ export default function BookingPreviewClient({
           Preview
         </span>
 
-        {slug && bookingEnabled ? (
+        {liveUrl ? (
           <a
-            href={`/book/${slug}`}
+            href={liveUrl}
             target="_blank"
             rel="noopener noreferrer"
+            title={!bookingEnabled ? 'Booking is disabled — enable the toggle to make this page live' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 5,
               fontFamily: 'var(--font-dm-sans)',
               fontSize: 13,
-              color: 'var(--accent-text)',
+              color: bookingEnabled ? 'var(--accent-text)' : 'var(--text-muted)',
               textDecoration: 'none',
               fontWeight: 500,
             }}
           >
-            Open live link
+            {bookingEnabled ? 'Open live link' : 'Link (disabled)'}
             <ExternalLink size={13} />
           </a>
         ) : (
@@ -110,7 +113,7 @@ export default function BookingPreviewClient({
               color: 'var(--text-muted)',
             }}
           >
-            {!slug ? 'No link yet' : 'Link disabled'}
+            No link yet
           </span>
         )}
       </div>
