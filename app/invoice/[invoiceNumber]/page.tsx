@@ -10,13 +10,20 @@ function serialize<T>(doc: T): T {
 
 export default async function PublicInvoicePage({
   params,
+  searchParams,
 }: {
   params: { invoiceNumber: string };
+  searchParams?: { t?: string };
 }) {
+  const token = searchParams?.t;
+
+  if (!token) notFound();
+
   await dbConnect();
 
   const invoice = await Invoice.findOne({
     invoiceNumber: decodeURIComponent(params.invoiceNumber),
+    publicAccessToken: token,
   }).lean<Record<string, unknown> | null>();
 
   if (!invoice) notFound();

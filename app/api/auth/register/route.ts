@@ -4,6 +4,7 @@ import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { welcomeTemplate, trialStartedTemplate } from '@/lib/email/templates';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
@@ -23,6 +24,15 @@ const STRING_FIELDS = [
 const NUMERIC_FIELDS = ['hourlyRate', 'partsMarkup'] as const;
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const limit = rateLimit('register', ip, { max: 5, windowMs: 60 * 60 * 1000 });
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
   let body: Record<string, unknown>;
 
   try {

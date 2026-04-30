@@ -246,7 +246,7 @@ const CATEGORIES: Category[] = [
         a: (
           <p>
             Your booking page is a public URL (e.g.{' '}
-            <strong>verityflow.com/book/your-slug</strong>) that customers can visit to request
+            <strong>verityflow.io/book/your-slug</strong>) that customers can visit to request
             a job. They fill in their details and what they need. You receive a notification and
             can accept or decline from <a href="/requests">Requests</a>. Enable it in{' '}
             <a href="/settings/booking">Settings → Booking Page</a>.

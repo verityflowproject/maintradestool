@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import BookingRequest from '@/lib/models/BookingRequest';
 import { sendMail, FROM_ADDRESS } from '@/lib/email/gmail';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
@@ -10,6 +11,15 @@ export async function POST(
   req: Request,
   { params }: { params: { slug: string } },
 ) {
+  const ip = getClientIp(req);
+  const limit = rateLimit('booking', ip, { max: 5, windowMs: 60 * 60 * 1000 });
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 },
+    );
+  }
+
   const body = (await req.json().catch(() => null)) as {
     name?: string;
     phone?: string;
@@ -58,7 +68,7 @@ export async function POST(
 
   // Send notification email to tradesperson (gated on preference)
   if (user.email && user.notifications?.newBookingRequest !== false) {
-    const origin = process.env.NEXT_PUBLIC_APP_URL ?? 'https://verityflow.com';
+    const origin = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? 'https://verityflow.io';
     const acceptLink = `${origin}/requests/${request._id}`;
 
     const preferredInfo = [

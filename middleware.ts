@@ -21,7 +21,7 @@ export async function middleware(req: NextRequest) {
   });
 
   const isProtected =
-    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|contact|feature-board|help)(\/|$|\?)/.test(pathname);
+    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board)(\/|$|\?)/.test(pathname);
   const isOnboarding = pathname === '/onboarding';
   const isAdminRoute =
     pathname === '/admin' ||
@@ -55,6 +55,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/onboarding', req.url));
   }
 
+  if (isProtected && token && token.onboardingCompleted !== true) {
+    return NextResponse.redirect(new URL('/onboarding', req.url));
+  }
+
   if (isOnboarding && token && token.onboardingCompleted === true) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
@@ -64,7 +68,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|contact|feature-board|help)(.*)?',
+    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board)(.*)?',
     '/onboarding',
     '/admin/:path*',
     '/api/admin/:path*',

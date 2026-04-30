@@ -36,7 +36,7 @@ export default function BookingPreviewClient({
   email,
 }: Props) {
   const liveUrl = slug
-    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://verityflow.com'}/book/${slug}`
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://verityflow.io'}/book/${slug}`
     : null;
 
   return (

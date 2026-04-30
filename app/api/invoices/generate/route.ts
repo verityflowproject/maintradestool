@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import Anthropic from '@anthropic-ai/sdk';
+import * as Sentry from '@sentry/nextjs';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
@@ -9,7 +10,7 @@ import Invoice from '@/lib/models/Invoice';
 import type { IInvoiceLineItem } from '@/lib/models/Invoice';
 import User from '@/lib/models/User';
 import Customer from '@/lib/models/Customer';
-import { generateInvoiceNumber } from '@/lib/utils/invoiceNumber';
+import { generateInvoiceNumber, generateInvoiceAccessToken } from '@/lib/utils/invoiceNumber';
 import { requireCapability } from '@/lib/requirePlan';
 
 export const runtime = 'nodejs';
@@ -231,12 +232,13 @@ export async function POST(req: Request) {
         { status: 422 },
       );
     }
-    console.error('[POST /api/invoices/generate] Claude error', e);
+    Sentry.captureException(e, { extra: { context: 'Claude invoice generation' } });
     return NextResponse.json({ error: 'Invoice generation failed' }, { status: 500 });
   }
 
   // ── 8. Assemble invoice document ──
   const invoiceNumber = await generateInvoiceNumber(session.user.id);
+  const publicAccessToken = generateInvoiceAccessToken();
   const lineItems = sanitizeLineItems(claudeJson.lineItems);
   const subtotal = +lineItems.reduce((s, li) => s + li.total, 0).toFixed(2);
   const taxRate = Number(job.taxRate) || 0;
@@ -254,6 +256,7 @@ export async function POST(req: Request) {
       jobId: job._id,
       customerId: job.customerId ?? null,
       invoiceNumber,
+      publicAccessToken,
       status: 'draft',
       businessName: user.businessName ?? '',
       businessRegion: user.region ?? '',
@@ -273,7 +276,7 @@ export async function POST(req: Request) {
       deliveryMethod: user.invoiceMethod ?? 'email',
     });
   } catch (e) {
-    console.error('[POST /api/invoices/generate] Invoice.create error', e);
+    Sentry.captureException(e, { extra: { context: 'Invoice.create' } });
     return NextResponse.json({ error: 'Invoice generation failed' }, { status: 500 });
   }
 
@@ -292,7 +295,7 @@ export async function POST(req: Request) {
     );
   } catch (e) {
     await Invoice.deleteOne({ _id: invoice._id });
-    console.error('[POST /api/invoices/generate] job-update rollback', e);
+    Sentry.captureException(e, { extra: { context: 'Invoice job-update rollback' } });
     return NextResponse.json({ error: 'Invoice generation failed' }, { status: 500 });
   }
 

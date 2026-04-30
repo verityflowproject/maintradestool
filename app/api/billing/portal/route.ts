@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://verityflow.io';
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,

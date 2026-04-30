@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     await user.save();
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://verityflow.io';
   const priceId = priceIdForPlan(plan);
 
   // Server-side early-bird eligibility check — client cannot spoof this

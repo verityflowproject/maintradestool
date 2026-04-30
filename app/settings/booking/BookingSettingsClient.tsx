@@ -49,11 +49,9 @@ export default function BookingSettingsClient({
 
   const slugCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://verityflow.com';
-  const APP_URL = origin.includes('localhost') ? origin : 'verityflow.com';
-  const bookingHref = origin.includes('localhost')
-    ? `${origin}/book/${slug}`
-    : `https://verityflow.com/book/${slug}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://verityflow.io';
+  const APP_URL = origin.includes('localhost') ? origin : 'https://verityflow.io';
+  const bookingHref = `${APP_URL}/book/${slug}`;
 
   const handleToggle = useCallback(async () => {
     const newEnabled = !enabled;

@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import * as Sentry from '@sentry/nextjs';
 import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { requireCapability } from '@/lib/requirePlan';
+import { rateLimit } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -96,6 +98,14 @@ export async function POST(req: Request) {
 
   const gate = await requireCapability(session.user.id, 'canUseVoice');
   if (!gate.ok) return gate.response;
+
+  const voiceLimit = rateLimit('voice', session.user.id, { max: 30, windowMs: 60 * 60 * 1000 });
+  if (!voiceLimit.ok) {
+    return NextResponse.json(
+      { error: 'Voice limit reached. Please wait before logging another job.' },
+      { status: 429 },
+    );
+  }
 
   // Parse multipart form
   let form: FormData;

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { track } from '@vercel/analytics';
 import InvoicePreview from './InvoicePreview';
 import SendInvoiceSection from './SendInvoiceSection';
 
@@ -44,6 +45,7 @@ export default function InvoiceClient({
           | null;
         throw new Error(json?.error ?? 'Generation failed');
       }
+      track('invoice_generated', { jobId });
       startTransition(() => router.refresh());
     } catch (e) {
       setGenError(e instanceof Error ? e.message : 'Something went wrong');

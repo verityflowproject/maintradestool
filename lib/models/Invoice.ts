@@ -12,6 +12,7 @@ export interface IInvoice extends Document {
   jobId: Types.ObjectId;
   customerId: Types.ObjectId | null;
   invoiceNumber: string;
+  publicAccessToken: string;
   status: 'draft' | 'sent' | 'paid' | 'overdue';
 
   businessName: string;
@@ -73,7 +74,11 @@ const InvoiceSchema = new Schema<IInvoice>({
   invoiceNumber: {
     type: String,
     required: true,
-    unique: true,
+  },
+  publicAccessToken: {
+    type: String,
+    required: true,
+    index: true,
   },
   status: {
     type: String,
@@ -117,7 +122,7 @@ const InvoiceSchema = new Schema<IInvoice>({
 
 InvoiceSchema.index({ userId: 1, createdAt: -1 });
 InvoiceSchema.index({ userId: 1, status: 1 });
-// invoiceNumber unique index is set via field-level `unique: true`
+InvoiceSchema.index({ userId: 1, invoiceNumber: 1 }, { unique: true });
 
 InvoiceSchema.pre('save', async function () {
   this.updatedAt = new Date();

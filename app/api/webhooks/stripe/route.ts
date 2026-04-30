@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
+import * as Sentry from '@sentry/nextjs';
+import { track } from '@vercel/analytics/server';
 import { stripe, planFromPriceId, getSubPeriodEnd } from '@/lib/stripe';
 import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
@@ -37,7 +39,7 @@ function welcomeEmailHtml(firstName: string): string {
       </ul>
       <p style="color:#666;font-size:13px;">
         Thanks for being a VerityFlow Pro member. If you have any questions, reply to this email or visit
-        <a href="https://help.verityflow.com" style="color:#1E90FF;">help.verityflow.com</a>.
+        <a href="https://verityflow.io/help" style="color:#1E90FF;">verityflow.io/help</a>.
       </p>
     </div>
     <div style="background:#f9f9f9;padding:16px 32px;text-align:center;border-top:1px solid #eee;">
@@ -51,7 +53,7 @@ function welcomeEmailHtml(firstName: string): string {
 // ── Payment failed email ──────────────────────────────────────────────
 
 function paymentFailedEmailHtml(firstName: string): string {
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://verityflow.com';
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://verityflow.io';
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"></head>
@@ -134,6 +136,7 @@ export async function POST(req: Request) {
             subject: 'Welcome to VerityFlow Pro!',
             html: welcomeEmailHtml(user.firstName),
           });
+          track('subscription_started', { plan: subPlan ?? 'unknown' }).catch(() => {});
         }
         break;
       }
@@ -234,9 +237,8 @@ export async function POST(req: Request) {
         break;
     }
   } catch (err) {
-    console.error('[webhook] Handler error:', err);
-    // Return 200 so Stripe doesn't retry for internal errors
-    return NextResponse.json({ received: true, warning: 'Handler error' });
+    Sentry.captureException(err, { extra: { eventType: event.type } });
+    return NextResponse.json({ error: 'Webhook handler error' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

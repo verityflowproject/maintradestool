@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { signIn } from "next-auth/react";
+import { track } from "@vercel/analytics";
 import type { StepProps } from "../types";
 
 const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,6 +66,12 @@ export default function AccountStep({
 
       if (res.status === 201) {
         localStorage.setItem("verityflow_profile", JSON.stringify(data));
+        track("signup_completed", { method: "email" });
+        await signIn("credentials", {
+          email: data.email,
+          password,
+          redirect: false,
+        });
         advanceStep(() => true);
       } else if (res.status === 409) {
         setErrors((e) => ({

@@ -1,5 +1,10 @@
+import { randomBytes } from 'crypto';
 import Invoice from '@/lib/models/Invoice';
 import type { Types } from 'mongoose';
+
+export function generateInvoiceAccessToken(): string {
+  return randomBytes(24).toString('base64url');
+}
 
 export async function generateInvoiceNumber(
   userId: Types.ObjectId | string,

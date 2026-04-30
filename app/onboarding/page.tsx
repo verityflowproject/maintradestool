@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { track } from "@vercel/analytics";
 import { ChevronLeft } from "lucide-react";
 import { type OnboardingData, type StepProps, defaultState } from "./types";
 import WelcomeStep from "./steps/WelcomeStep";
@@ -120,6 +121,7 @@ export default function OnboardingPage() {
       });
 
       if (res.ok) {
+        track("signup_completed", { method: "google" });
         // Refresh the JWT so middleware sees onboardingCompleted: true
         await updateSession();
         router.push("/dashboard");

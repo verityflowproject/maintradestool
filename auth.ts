@@ -94,8 +94,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, user, trigger }) {
-      // Re-fetch from DB on first sign-in for both Credentials and Google
-      if (user || trigger === 'signIn') {
+      // Re-fetch from DB on first sign-in and whenever updateSession() is called
+      if (user || trigger === 'signIn' || trigger === 'update') {
         const email =
           (user?.email as string | undefined) ??
           (token.email as string | undefined);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { track } from '@vercel/analytics';
 import {
   ChevronLeft,
   Mic,
@@ -258,6 +259,7 @@ export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
       const result = await transcribeAudio(audioBlob);
       clearProcessingTimer();
       if (result.success) {
+        track('voice_log_used');
         setTranscript(result.transcript);
         try {
           sessionStorage.setItem(

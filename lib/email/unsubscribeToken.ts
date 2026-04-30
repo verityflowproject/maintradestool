@@ -3,7 +3,9 @@ import type { INotificationPrefs } from '@/lib/models/User';
 import { APP_URL } from '@/lib/email/resend';
 
 function getSecret(): string {
-  return process.env.UNSUBSCRIBE_SECRET ?? process.env.NEXTAUTH_SECRET ?? 'fallback-secret';
+  const s = process.env.UNSUBSCRIBE_SECRET ?? process.env.NEXTAUTH_SECRET;
+  if (!s) throw new Error('UNSUBSCRIBE_SECRET or NEXTAUTH_SECRET must be set');
+  return s;
 }
 
 function b64url(str: string): string {
