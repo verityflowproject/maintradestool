@@ -49,9 +49,13 @@ export default function BottomNav() {
   const { state } = usePlanState();
   const { show: showUpgradeGate } = useUpgradeGate();
 
+  // Per-job voice page pattern: /jobs/<id>/voice
+  const isJobVoicePage = /^\/jobs\/[^/]+\/voice(\/|$)/.test(pathname);
+
   if (
     pathname.startsWith("/onboarding") ||
     pathname === "/jobs/new/voice" ||
+    isJobVoicePage ||
     pathname.startsWith("/invoice/") ||
     pathname.startsWith("/book/") ||
     pathname.startsWith("/admin") ||

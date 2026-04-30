@@ -203,9 +203,18 @@ export async function POST(req: Request) {
   }
 
   // ── 7. Claude — with one retry on JSON parse failure ──
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.error('[POST /api/invoices/generate] ANTHROPIC_API_KEY is not set');
+    return NextResponse.json(
+      { error: 'Invoice generation is not configured (missing API key). Contact support.' },
+      { status: 503 },
+    );
+  }
+
   let claudeJson: ClaudeInvoiceJson;
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = new Anthropic({ apiKey });
     try {
       claudeJson = await askClaude(anthropic, job, user, false);
     } catch (e) {

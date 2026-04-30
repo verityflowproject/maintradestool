@@ -60,7 +60,12 @@ async function transcribeAudio(
   }
 }
 
-export default function VoiceRecorder() {
+interface VoiceRecorderProps {
+  /** When set, the parsed job data will be merged into this existing job */
+  mergeJobId?: string;
+}
+
+export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
   const router = useRouter();
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -253,18 +258,24 @@ export default function VoiceRecorder() {
       const result = await transcribeAudio(audioBlob);
       clearProcessingTimer();
       if (result.success) {
-        console.log('Transcript:', result.transcript);
-        console.log('Parsed job:', result.parsedJob);
         setTranscript(result.transcript);
         try {
           sessionStorage.setItem(
             'verityflow_parsed_job',
-            JSON.stringify({ transcript: result.transcript, parsedJob: result.parsedJob }),
+            JSON.stringify({
+              transcript: result.transcript,
+              parsedJob: result.parsedJob,
+              ...(mergeJobId ? { mergeJobId } : {}),
+            }),
           );
         } catch {
-          // sessionStorage unavailable — review page will handle gracefully
+          // sessionStorage unavailable — target page will handle gracefully
         }
-        router.push('/jobs/new/review');
+        if (mergeJobId) {
+          router.push(`/jobs/${mergeJobId}/edit?fromVoice=1`);
+        } else {
+          router.push('/jobs/new/review');
+        }
         return;
       } else {
         setProcessingError(result.error);
@@ -303,7 +314,7 @@ export default function VoiceRecorder() {
         <>
           <button
             className="voice-back"
-            onClick={() => router.push('/jobs/new')}
+            onClick={() => router.push(mergeJobId ? `/jobs/${mergeJobId}` : '/jobs/new')}
             aria-label="Back"
           >
             <ChevronLeft size={24} />
@@ -337,9 +348,9 @@ export default function VoiceRecorder() {
 
             <button
               className="voice-manual-link"
-              onClick={() => router.push('/jobs/new')}
+              onClick={() => router.push(mergeJobId ? `/jobs/${mergeJobId}/edit` : '/jobs/new')}
             >
-              Or fill in manually
+              {mergeJobId ? 'Or edit manually' : 'Or fill in manually'}
             </button>
           </div>
         </>
@@ -350,7 +361,7 @@ export default function VoiceRecorder() {
         <>
           <button
             className="voice-back"
-            onClick={() => router.push('/jobs/new')}
+            onClick={() => router.push(mergeJobId ? `/jobs/${mergeJobId}` : '/jobs/new')}
             aria-label="Back"
           >
             <ChevronLeft size={24} />

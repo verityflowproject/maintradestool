@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Link as LinkIcon } from 'lucide-react';
+import { ChevronLeft, Link as LinkIcon, Mic, Pencil } from 'lucide-react';
 import { Types } from 'mongoose';
 import { dbConnect } from '@/lib/mongodb';
 import Job, { type IJob } from '@/lib/models/Job';
@@ -210,11 +210,28 @@ export default async function JobDetailPage({
 
       {/* ── Actions ── */}
       <div className="job-form-actions">
-        <Link href={`/jobs/${jobId}/edit`} className="btn-ghost" style={{ textAlign: 'center', textDecoration: 'none', display: 'block' }}>
-          Edit Job
-        </Link>
+        {status !== 'paid' && (
+          <>
+            <Link
+              href={`/jobs/${jobId}/edit`}
+              className="btn-ghost"
+              style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              <Pencil size={15} />
+              Edit Job
+            </Link>
+            <Link
+              href={`/jobs/${jobId}/voice`}
+              className="btn-ghost"
+              style={{ textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              <Mic size={15} />
+              Use Voice
+            </Link>
+          </>
+        )}
         <Link href={`/jobs/${jobId}/invoice`} className="btn-accent" style={{ textAlign: 'center', textDecoration: 'none', display: 'block' }}>
-          Generate Invoice →
+          {status === 'invoiced' || status === 'paid' ? 'View Invoice →' : 'Generate Invoice →'}
         </Link>
       </div>
     </div>

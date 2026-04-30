@@ -39,8 +39,27 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VerityFlow",
-  description: "Voice in. Invoice out. AI-powered job memory and instant invoices for tradespeople.",
+  metadataBase: new URL("https://verityflow.io"),
+  title: {
+    default: "VerityFlow — AI Job Logging & Invoicing for Tradespeople",
+    template: "%s | VerityFlow",
+  },
+  description:
+    "Voice in. Invoice out. Log jobs by talking, auto-generate professional invoices, and get paid faster. Built for plumbers, electricians, HVAC techs, and every other trade.",
+  keywords: [
+    "tradesperson invoicing app",
+    "voice job logging",
+    "plumber invoice app",
+    "electrician job management",
+    "HVAC invoicing",
+    "trade business software",
+    "AI invoices for tradespeople",
+    "VerityFlow",
+  ],
+  authors: [{ name: "VerityFlow", url: "https://verityflow.io" }],
+  creator: "VerityFlow",
+  publisher: "VerityFlow",
+  category: "Business",
   manifest: "/manifest.json",
   applicationName: "VerityFlow",
   appleWebApp: {
@@ -50,18 +69,57 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
       { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
     ],
-    apple: "/icons/apple-touch-icon.png",
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      { rel: "icon", url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
   openGraph: {
-    title: "VerityFlow — AI for Tradespeople",
-    description: "Voice-log your jobs. Auto-generate invoices. Get paid faster.",
+    title: "VerityFlow — AI Job Logging & Invoicing for Tradespeople",
+    description:
+      "Voice-log your jobs. Auto-generate professional invoices. Get paid faster. The AI-powered tool built for the trades.",
+    url: "https://verityflow.io",
+    siteName: "VerityFlow",
     type: "website",
-    images: ["/og-image.png"],
+    locale: "en_US",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "VerityFlow — AI Job Logging & Invoicing for Tradespeople",
+        type: "image/png",
+      },
+    ],
   },
-  twitter: { card: "summary_large_image" },
+  twitter: {
+    card: "summary_large_image",
+    title: "VerityFlow — AI Job Logging & Invoicing for Tradespeople",
+    description:
+      "Voice-log your jobs. Auto-generate professional invoices. Get paid faster.",
+    images: ["/og-image.png"],
+    creator: "@verityflow",
+    site: "@verityflow",
+  },
+  verification: {
+    google: "googlee8b8c9d60f94bc5a",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {
@@ -88,6 +146,37 @@ export default async function RootLayout({
       className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
     >
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "VerityFlow",
+              url: "https://verityflow.io",
+              logo: "https://verityflow.io/logo/verityflow-full.png",
+              description:
+                "Voice in. Invoice out. Log jobs by talking, auto-generate professional invoices, and get paid faster. Built for plumbers, electricians, HVAC techs, and every trade.",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web, iOS, Android",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+                description: "Free trial available",
+              },
+              publisher: {
+                "@type": "Organization",
+                name: "VerityFlow",
+                url: "https://verityflow.io",
+                logo: {
+                  "@type": "ImageObject",
+                  url: "https://verityflow.io/logo/verityflow-full.png",
+                },
+              },
+            }),
+          }}
+        />
         <SessionProviderShell>
           <ToastProvider>
             <UpgradeGateProvider>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronDown, ChevronUp, Trash2, Wand2 } from 'lucide-react';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
+import { useToast } from '@/components/Toast/ToastProvider';
 
 interface JobPart {
   name: string;
@@ -49,6 +50,10 @@ interface Props {
   internalNotes?: string | null;
   pageTitle?: string;
   backHref?: string;
+  /** When set, the form PATCHes an existing job instead of POSTing a new one */
+  editJobId?: string;
+  /** Current status of the job being edited — controls which buttons to show */
+  currentStatus?: string;
 }
 
 function fmt(n: number): string {
@@ -108,8 +113,11 @@ export default function JobForm({
   internalNotes,
   pageTitle = 'New Job',
   backHref = '/jobs',
+  editJobId,
+  currentStatus,
 }: Props) {
   const router = useRouter();
+  const { toast } = useToast();
 
   const baseDefaults: FormState = {
     customerId: null,
@@ -232,7 +240,7 @@ export default function JobForm({
     setTimeout(() => setShaking(false), 400);
   }, []);
 
-  async function handleSubmit(status: 'draft' | 'complete') {
+  async function handleSubmit(action: 'draft' | 'complete' | 'save') {
     if (!form.title.trim()) {
       setTitleError('Job title is required.');
       shake();
@@ -241,6 +249,11 @@ export default function JobForm({
     setTitleError('');
     setSubmitError('');
     setSubmitting(true);
+
+    const effectiveStatus: string =
+      action === 'save'
+        ? (currentStatus ?? 'draft')
+        : action;
 
     try {
       const payload = {
@@ -265,27 +278,55 @@ export default function JobForm({
           markup: Number(p.markup) || 0,
         })),
         taxRate: Number(form.taxRate) || 0,
-        status,
+        status: effectiveStatus,
         aiParsed: !!aiParsed,
         voiceTranscript: transcript ?? null,
         internalNotes: internalNotes ?? '',
       };
 
-      const res = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json() as { success?: boolean; jobId?: string; error?: string };
+      if (editJobId) {
+        // ── Edit mode: PATCH existing job ──────────────────────────────
+        const res = await fetch(`/api/jobs/${editJobId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json() as {
+          success?: boolean;
+          jobId?: string;
+          error?: string;
+          invoiceAction?: 'none' | 'reset' | 'updated';
+        };
 
-      if (res.status === 201 && json.jobId) {
-        if (aiParsed && status === 'complete') {
-          router.push(`/jobs/${json.jobId}/invoice`);
-        } else {
+        if (res.ok && json.jobId) {
+          if (json.invoiceAction === 'reset') {
+            toast.info('Invoice was reset — regenerate when ready.');
+          } else if (json.invoiceAction === 'updated') {
+            toast.success('Job saved. Invoice totals updated.');
+          }
           router.push(`/jobs/${json.jobId}`);
+          router.refresh();
+        } else {
+          setSubmitError(json.error ?? 'Something went wrong. Please try again.');
         }
       } else {
-        setSubmitError(json.error ?? 'Something went wrong. Please try again.');
+        // ── Create mode: POST new job ──────────────────────────────────
+        const res = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json() as { success?: boolean; jobId?: string; error?: string };
+
+        if (res.status === 201 && json.jobId) {
+          if (aiParsed && effectiveStatus === 'complete') {
+            router.push(`/jobs/${json.jobId}/invoice`);
+          } else {
+            router.push(`/jobs/${json.jobId}`);
+          }
+        } else {
+          setSubmitError(json.error ?? 'Something went wrong. Please try again.');
+        }
       }
     } catch {
       setSubmitError('Something went wrong. Please try again.');
@@ -316,7 +357,9 @@ export default function JobForm({
             type="button"
             className="link-accent"
             style={{ marginLeft: 'auto' }}
-            onClick={() => router.push('/jobs/new/voice')}
+            onClick={() =>
+              router.push(editJobId ? `/jobs/${editJobId}/voice` : '/jobs/new/voice')
+            }
           >
             Use voice
           </button>
@@ -728,24 +771,49 @@ export default function JobForm({
         )}
 
         {/* Action buttons */}
-        <div className="job-form-actions">
-          <button
-            type="button"
-            className={`btn-accent${shaking ? ' shake' : ''}`}
-            disabled={submitting}
-            onClick={() => handleSubmit('complete')}
-          >
-            {submitting ? 'Saving…' : aiParsed ? 'Save & Generate Invoice →' : 'Mark Complete'}
-          </button>
-          <button
-            type="button"
-            className="job-form-draft-btn"
-            disabled={submitting}
-            onClick={() => handleSubmit('draft')}
-          >
-            {submitting ? 'Saving…' : 'Save as draft'}
-          </button>
-        </div>
+        {editJobId ? (
+          // ── Edit mode ─────────────────────────────────────────────────
+          <div className="job-form-actions">
+            <button
+              type="button"
+              className={`btn-accent${shaking ? ' shake' : ''}`}
+              disabled={submitting}
+              onClick={() => handleSubmit('save')}
+            >
+              {submitting ? 'Saving…' : 'Save Changes'}
+            </button>
+            {currentStatus === 'draft' && (
+              <button
+                type="button"
+                className="job-form-draft-btn"
+                disabled={submitting}
+                onClick={() => handleSubmit('complete')}
+              >
+                {submitting ? 'Saving…' : 'Mark Complete'}
+              </button>
+            )}
+          </div>
+        ) : (
+          // ── Create mode ───────────────────────────────────────────────
+          <div className="job-form-actions">
+            <button
+              type="button"
+              className={`btn-accent${shaking ? ' shake' : ''}`}
+              disabled={submitting}
+              onClick={() => handleSubmit('complete')}
+            >
+              {submitting ? 'Saving…' : aiParsed ? 'Save & Generate Invoice →' : 'Mark Complete'}
+            </button>
+            <button
+              type="button"
+              className="job-form-draft-btn"
+              disabled={submitting}
+              onClick={() => handleSubmit('draft')}
+            >
+              {submitting ? 'Saving…' : 'Save as draft'}
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ── Sticky running total chip ── */}
