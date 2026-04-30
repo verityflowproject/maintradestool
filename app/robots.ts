@@ -7,6 +7,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: [
           '/',
+          '/onboarding',
           '/book/',
           '/invoice/',
         ],
@@ -18,7 +19,6 @@ export default function robots(): MetadataRoute.Robots {
           '/customers',
           '/requests',
           '/settings',
-          '/onboarding',
           '/admin',
           '/billing-expired',
           '/api/',
