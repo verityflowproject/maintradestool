@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Syne, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
@@ -38,7 +39,8 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
+export function generateMetadata(): Metadata {
+  return {
   metadataBase: new URL("https://verityflow.io"),
   title: {
     default: "VerityFlow — AI Job Logging & Invoicing for Tradespeople",
@@ -120,7 +122,11 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-};
+  other: {
+    ...Sentry.getTraceData(),
+  },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
