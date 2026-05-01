@@ -1,22 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function GlobalError({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    Sentry.captureException(error);
-  }, [error]);
-
   return (
     <div
       style={{
@@ -64,7 +57,7 @@ export default function GlobalError({
             lineHeight: 1.5,
           }}
         >
-          An unexpected error occurred. Our team has been notified. Please try again or reach out if the problem persists.
+          An unexpected error occurred. Please try again, or reach out if the problem persists.
         </p>
       </div>
 

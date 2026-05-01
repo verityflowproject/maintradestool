@@ -83,7 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           region: '',
           invoiceMethod: 'email',
           plan: 'trial',
-          trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           onboardingCompleted: false,
         });
 

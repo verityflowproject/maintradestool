@@ -135,7 +135,7 @@ export default function AccountStep({
       </div>
 
       <p className="free-trial-note">
-        No credit card required. Free for 30 days.
+        No credit card required. Free for 14 days.
       </p>
 
       <button

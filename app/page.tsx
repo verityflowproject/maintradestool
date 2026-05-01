@@ -236,7 +236,7 @@ export default async function RootPage() {
             © {new Date().getFullYear()} VerityFlow. Built for tradespeople.
           </p>
           <p style={{ fontSize: 12, color: "var(--text-tertiary, #6b7280)", margin: 0 }}>
-            30-day free trial · No credit card required
+            14-day free trial · No credit card required
           </p>
         </div>
       </footer>

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import Anthropic from '@anthropic-ai/sdk';
-import * as Sentry from '@sentry/nextjs';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
@@ -232,7 +231,7 @@ export async function POST(req: Request) {
         { status: 422 },
       );
     }
-    Sentry.captureException(e, { extra: { context: 'Claude invoice generation' } });
+    console.error('[invoices/generate] Claude invoice generation failed:', e);
     return NextResponse.json({ error: 'Invoice generation failed' }, { status: 500 });
   }
 
@@ -276,7 +275,7 @@ export async function POST(req: Request) {
       deliveryMethod: user.invoiceMethod ?? 'email',
     });
   } catch (e) {
-    Sentry.captureException(e, { extra: { context: 'Invoice.create' } });
+    console.error('[invoices/generate] Invoice.create failed:', e);
     return NextResponse.json({ error: 'Invoice generation failed' }, { status: 500 });
   }
 
@@ -295,7 +294,7 @@ export async function POST(req: Request) {
     );
   } catch (e) {
     await Invoice.deleteOne({ _id: invoice._id });
-    Sentry.captureException(e, { extra: { context: 'Invoice job-update rollback' } });
+    console.error('[invoices/generate] Invoice job-update rollback:', e);
     return NextResponse.json({ error: 'Invoice generation failed' }, { status: 500 });
   }
 

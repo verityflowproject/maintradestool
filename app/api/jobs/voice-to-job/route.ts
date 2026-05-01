@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
-import * as Sentry from '@sentry/nextjs';
 import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { requireCapability } from '@/lib/requirePlan';

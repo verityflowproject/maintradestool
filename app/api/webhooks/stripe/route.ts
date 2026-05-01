@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import * as Sentry from '@sentry/nextjs';
 import { track } from '@vercel/analytics/server';
 import { stripe, planFromPriceId, getSubPeriodEnd } from '@/lib/stripe';
 import { dbConnect } from '@/lib/mongodb';
@@ -237,7 +236,7 @@ export async function POST(req: Request) {
         break;
     }
   } catch (err) {
-    Sentry.captureException(err, { extra: { eventType: event.type } });
+    console.error('[stripe-webhook] handler error:', { eventType: event.type, err });
     return NextResponse.json({ error: 'Webhook handler error' }, { status: 500 });
   }
 

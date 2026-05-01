@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Syne, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
@@ -122,9 +121,6 @@ export function generateMetadata(): Metadata {
       "max-snippet": -1,
     },
   },
-  other: {
-    ...Sentry.getTraceData(),
-  },
   };
 }
 
@@ -169,7 +165,7 @@ export default async function RootLayout({
                 "@type": "Offer",
                 price: "0",
                 priceCurrency: "USD",
-                description: "Free trial available",
+                description: "14-day free trial — no credit card required",
               },
               publisher: {
                 "@type": "Organization",
