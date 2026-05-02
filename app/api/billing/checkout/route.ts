@@ -85,23 +85,63 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Price ID not configured', detail: `STRIPE_PRICE_PRO_${plan === 'monthly' ? 'MONTHLY' : 'ANNUAL'} is not set` }, { status: 500 });
     }
 
-    try {
-      const checkoutSession = await stripe.checkout.sessions.create({
+    const buildCheckout = (customerId: string) =>
+      stripe.checkout.sessions.create({
         mode: 'subscription',
-        customer: user.stripeCustomerId,
+        customer: customerId,
         line_items: [{ price: priceId, quantity: 1 }],
         allow_promotion_codes: true,
         success_url: `${baseUrl}/settings/billing?success=true`,
         cancel_url: `${baseUrl}/settings/billing?cancelled=true`,
-        metadata: {
-          userId: user._id.toString(),
-        },
-        subscription_data: {
-          metadata: {
-            userId: user._id.toString(),
-          },
-        },
+        metadata: { userId: user._id.toString() },
+        subscription_data: { metadata: { userId: user._id.toString() } },
       });
+
+    try {
+      let checkoutSession;
+      try {
+        checkoutSession = await buildCheckout(user.stripeCustomerId);
+      } catch (err) {
+        // Self-healing: if the stored Stripe customer no longer exists (mode
+        // switch, deleted in dashboard, account migration), clear the stale ID,
+        // create a fresh customer, and retry once.
+        const stripeCode = (err as { code?: string; raw?: { code?: string } }).code
+          ?? (err as { raw?: { code?: string } }).raw?.code
+          ?? null;
+        const message = err instanceof Error ? err.message : '';
+        const isStale = stripeCode === 'resource_missing' && /no such customer/i.test(message);
+
+        // #region agent log
+        debugLog('app/api/billing/checkout/route.ts:checkout-first-attempt-failed', 'first checkout attempt failed', {
+          stripeCode,
+          message,
+          isStale,
+          staleCustomerIdPrefix: user.stripeCustomerId?.slice(0, 8),
+        }, 'A');
+        // #endregion
+
+        if (!isStale) throw err;
+
+        // Stale customer ID — clear and recreate
+        const oldId = user.stripeCustomerId;
+        // Also clear subscription pointer since it belongs to the dead customer
+        user.stripeSubscriptionId = null;
+        const fresh = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId: user._id.toString() },
+        });
+        user.stripeCustomerId = fresh.id;
+        await user.save();
+
+        // #region agent log
+        debugLog('app/api/billing/checkout/route.ts:customer-recovered', 'replaced stale stripe customer', {
+          oldIdPrefix: oldId?.slice(0, 8),
+          newIdPrefix: fresh.id.slice(0, 8),
+        }, 'A');
+        // #endregion
+
+        checkoutSession = await buildCheckout(fresh.id);
+      }
 
       // #region agent log
       debugLog('app/api/billing/checkout/route.ts:checkout-created', 'stripe checkout session created', { hasUrl: !!checkoutSession.url });
@@ -110,12 +150,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: checkoutSession.url });
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Unknown error';
-      const stripeCode = (err as { code?: string; type?: string; raw?: { code?: string; message?: string } }).code
+      const stripeCode = (err as { code?: string; raw?: { code?: string } }).code
         ?? (err as { raw?: { code?: string } }).raw?.code
         ?? null;
       const stripeType = (err as { type?: string }).type ?? null;
       // #region agent log
-      debugLog('app/api/billing/checkout/route.ts:checkout-error', 'stripe.checkout.sessions.create threw', {
+      debugLog('app/api/billing/checkout/route.ts:checkout-error', 'stripe.checkout.sessions.create threw (after retry if stale)', {
         detail,
         stripeCode,
         stripeType,
