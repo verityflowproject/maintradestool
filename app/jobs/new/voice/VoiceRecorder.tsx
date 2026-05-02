@@ -31,33 +31,60 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+const MIME_TO_EXT: Record<string, string> = {
+  'audio/webm': 'webm',
+  'audio/ogg': 'ogg',
+  'audio/mp4': 'm4a',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'audio/wave': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/flac': 'flac',
+};
+
 function pickMimeType(): string {
   const types = ['audio/webm', 'audio/ogg', 'audio/mp4', ''];
   return types.find((t) => !t || MediaRecorder.isTypeSupported(t)) ?? '';
+}
+
+/** Strip codec params from a MIME type: "audio/webm;codecs=opus" → "audio/webm" */
+function baseType(mime: string): string {
+  return mime.split(';')[0].trim().toLowerCase();
 }
 
 async function transcribeAudio(
   blob: Blob,
 ): Promise<
   | { success: true; transcript: string; parsedJob: unknown }
-  | { success: false; error: string }
+  | { success: false; error: string; detail?: string }
 > {
+  const mime = baseType(blob.type || 'audio/webm');
+  const ext = MIME_TO_EXT[mime] ?? 'webm';
+
+  console.debug('[voice] uploading blob', { type: blob.type, mime, ext, size: blob.size });
+
   const form = new FormData();
-  const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
-  form.append('audio', blob, `recording.${ext}`);
+  // Reconstruct blob with the clean base MIME so the Content-Type part header is unambiguous
+  const uploadBlob = new Blob([blob], { type: mime });
+  form.append('audio', uploadBlob, `recording.${ext}`);
 
   try {
     const res = await fetch('/api/jobs/voice-to-job', { method: 'POST', body: form });
     const json = (await res.json().catch(() => null)) as
-      | { transcript?: string; parsedJob?: unknown; error?: string }
+      | { transcript?: string; parsedJob?: unknown; error?: string; detail?: string }
       | null;
 
     if (!res.ok || !json?.transcript || !json?.parsedJob) {
-      return { success: false, error: json?.error ?? 'Transcription failed' };
+      const err = json?.error ?? 'Transcription failed';
+      console.error('[voice] server error', { status: res.status, error: err, detail: json?.detail });
+      return { success: false, error: err, detail: json?.detail };
     }
     return { success: true, transcript: json.transcript, parsedJob: json.parsedJob };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : 'Network error' };
+    const msg = e instanceof Error ? e.message : 'Network error';
+    console.error('[voice] fetch error', msg);
+    return { success: false, error: msg };
   }
 }
 
@@ -82,6 +109,7 @@ export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
   const [audioDuration, setAudioDuration] = useState(0);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
   const [processingError, setProcessingError] = useState<string | null>(null);
+  const [processingErrorDetail, setProcessingErrorDetail] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -242,6 +270,7 @@ export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
   async function handleTranscribe() {
     if (!audioBlob) return;
     setProcessingError(null);
+    setProcessingErrorDetail(null);
     setProcessingMsgIdx(0);
     setMsgVisible(true);
     setPhase('processing');
@@ -281,10 +310,12 @@ export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
         return;
       } else {
         setProcessingError(result.error);
+        setProcessingErrorDetail(result.detail ?? null);
       }
     } catch {
       clearProcessingTimer();
       setProcessingError('Something went wrong. Please try again.');
+      setProcessingErrorDetail(null);
     }
   }
 
@@ -536,6 +567,11 @@ export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
           {processingError ? (
             <>
               <p className="voice-permission-error">{processingError}</p>
+              {processingErrorDetail && (
+                <p className="voice-status-msg" style={{ marginTop: 8, opacity: 0.7, fontSize: '0.8rem' }}>
+                  {processingErrorDetail}
+                </p>
+              )}
               <button
                 className="btn-ghost"
                 style={{ marginTop: 24 }}
@@ -544,6 +580,7 @@ export default function VoiceRecorder({ mergeJobId }: VoiceRecorderProps = {}) {
                   setPhase('idle');
                   setAudioBlob(null);
                   setTranscript(null);
+                  setProcessingErrorDetail(null);
                   if (audioUrl) {
                     URL.revokeObjectURL(audioUrl);
                     setAudioUrl(null);

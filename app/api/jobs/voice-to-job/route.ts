@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
@@ -11,6 +11,23 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB Whisper limit
+
+const MIME_TO_EXT: Record<string, string> = {
+  'audio/webm': 'webm',
+  'audio/ogg': 'ogg',
+  'audio/mp4': 'm4a',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/wav': 'wav',
+  'audio/wave': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/flac': 'flac',
+};
+
+/** Strip codec params: "audio/webm;codecs=opus" → "audio/webm" */
+function baseType(mime: string): string {
+  return (mime || '').split(';')[0].trim().toLowerCase();
+}
 
 interface UserCtx {
   firstName: string;
@@ -64,6 +81,26 @@ Return a JSON object with exactly these fields:
 }`;
 }
 
+/** Extract the first balanced JSON object from a string, tolerating markdown fences and prose. */
+function extractJson(raw: string): string {
+  // Strip optional ```json … ``` or ``` … ``` fences
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) return fenced[1].trim();
+
+  // Fall back: find the first '{' and its matching '}'
+  const start = raw.indexOf('{');
+  if (start === -1) return raw;
+  let depth = 0;
+  for (let i = start; i < raw.length; i++) {
+    if (raw[i] === '{') depth++;
+    else if (raw[i] === '}') {
+      depth--;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
+  }
+  return raw;
+}
+
 async function parseJobWithClaude(
   client: Anthropic,
   transcript: string,
@@ -83,7 +120,7 @@ async function parseJobWithClaude(
     .trim();
 
   try {
-    return JSON.parse(raw);
+    return JSON.parse(extractJson(raw));
   } catch {
     throw new ParseJsonError();
   }
@@ -136,26 +173,75 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Whisper transcription
+  // Normalise MIME type and build a properly-named file for Whisper.
+  // Whisper uses the file extension to choose its decoder, so a mislabeled
+  // file (e.g. audio/mp4 content named "recording.webm") will always fail.
+  const mime = baseType(audio.type || 'audio/webm');
+  const ext = MIME_TO_EXT[mime] ?? 'webm';
+  console.info('[POST /api/jobs/voice-to-job] audio', {
+    originalType: audio.type,
+    normalizedMime: mime,
+    ext,
+    size: audio.size,
+  });
+
+  const buffer = Buffer.from(await audio.arrayBuffer());
+  const whisperFile = await toFile(buffer, `audio.${ext}`, { type: mime });
+
+  // Whisper transcription — one automatic retry on transient network/5xx failures
   let transcriptText: string;
-  try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  async function runWhisper() {
     const transcription = await openai.audio.transcriptions.create({
       model: 'whisper-1',
-      file: audio,
+      file: whisperFile,
       language: 'en',
+      temperature: 0,
       prompt:
         'This is a tradesperson describing a job they completed. They may mention customer names, addresses, parts used, hours worked, and labor rates.',
     });
-    transcriptText = transcription.text;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[POST /api/jobs/voice-to-job] Whisper error', err);
-    return NextResponse.json(
-      { error: 'Transcription failed', detail: message },
-      { status: 500 },
-    );
+    return transcription.text;
   }
+
+  try {
+    transcriptText = await runWhisper();
+  } catch (firstErr) {
+    const isTransient =
+      firstErr instanceof Error &&
+      (firstErr.message.includes('fetch') ||
+        firstErr.message.includes('ECONNRESET') ||
+        firstErr.message.includes('timeout') ||
+        (firstErr as { status?: number }).status != null
+          ? (firstErr as { status?: number }).status! >= 500
+          : false);
+
+    if (isTransient) {
+      console.warn('[POST /api/jobs/voice-to-job] Whisper transient error, retrying once', firstErr);
+      try {
+        transcriptText = await runWhisper();
+      } catch (retryErr) {
+        const message = retryErr instanceof Error ? retryErr.message : 'Unknown error';
+        console.error('[POST /api/jobs/voice-to-job] Whisper retry failed', retryErr);
+        return NextResponse.json(
+          { error: 'Transcription failed', detail: message },
+          { status: 500 },
+        );
+      }
+    } else {
+      const message = firstErr instanceof Error ? firstErr.message : 'Unknown error';
+      console.error('[POST /api/jobs/voice-to-job] Whisper error', firstErr);
+      return NextResponse.json(
+        { error: 'Transcription failed', detail: message },
+        { status: 500 },
+      );
+    }
+  }
+
+  console.info('[POST /api/jobs/voice-to-job] transcript ok', {
+    length: transcriptText.length,
+    preview: transcriptText.slice(0, 80),
+  });
 
   // Claude parsing
   let parsedJob: unknown;
@@ -165,7 +251,7 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof ParseJsonError) {
       return NextResponse.json(
-        { error: 'Could not parse job data. Please try again.' },
+        { error: 'Could not parse job data. Please try again.', detail: 'Claude response was not valid JSON.' },
         { status: 422 },
       );
     }
