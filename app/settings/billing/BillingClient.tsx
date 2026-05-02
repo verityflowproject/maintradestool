@@ -74,15 +74,61 @@ export default function BillingClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: selectedPlan }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (res.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error(data.error ?? 'Could not start checkout.');
-        setLoadingPlan(null);
+
+      const text = await res.text();
+      // #region agent log
+      fetch('http://127.0.0.1:7640/ingest/3195af90-a8fb-42a5-93e8-4e3cff3932fe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bac3eb' },
+        body: JSON.stringify({
+          sessionId: 'bac3eb',
+          location: 'app/settings/billing/BillingClient.tsx:handleCheckout',
+          message: 'checkout response received',
+          data: { status: res.status, ok: res.ok, bodyPreview: text.slice(0, 500), contentType: res.headers.get('content-type') },
+          hypothesisId: 'A,B,C,D,E',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+
+      let data: { url?: string; error?: string; detail?: string } | null = null;
+      try {
+        data = JSON.parse(text) as { url?: string; error?: string; detail?: string };
+      } catch {
+        data = null;
       }
-    } catch {
-      toast.error('Something went wrong.');
+
+      if (res.ok && data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      const errMsg = data?.error
+        ? data.detail
+          ? `${data.error}: ${data.detail}`
+          : data.error
+        : `Checkout failed (${res.status}). ${text.slice(0, 120)}`;
+      console.error('[checkout] failed', { status: res.status, body: text });
+      toast.error(errMsg);
+      setLoadingPlan(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Network error';
+      // #region agent log
+      fetch('http://127.0.0.1:7640/ingest/3195af90-a8fb-42a5-93e8-4e3cff3932fe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bac3eb' },
+        body: JSON.stringify({
+          sessionId: 'bac3eb',
+          location: 'app/settings/billing/BillingClient.tsx:handleCheckout-catch',
+          message: 'checkout fetch threw',
+          data: { error: msg },
+          hypothesisId: 'A,B,C,D,E',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+      console.error('[checkout] fetch threw', e);
+      toast.error(`Something went wrong: ${msg}`);
       setLoadingPlan(null);
     }
   }, [toast]);
