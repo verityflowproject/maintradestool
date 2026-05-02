@@ -15,7 +15,7 @@ import {
   trialExpiredTemplate,
   winBackTemplate,
   dunningEscalationTemplate,
-  earlyBirdEndingTemplate,
+  promoEndingTemplate,
 } from '@/lib/email/templates';
 
 function startOfDay(date = new Date()): Date {
@@ -251,14 +251,12 @@ export async function GET(req: NextRequest) {
     results.dunningEscalationsError = String(err);
   }
 
-  // Task 7 — Early-bird ending email (day 5 of trial, ~2 days before window closes)
+  // Task 7 — Promo reminder email (day 5–7 of trial, for users who haven't subscribed yet)
   try {
-    const EARLY_BIRD_MS = 7 * 86_400_000;
     const fiveDaysMs = 5 * 86_400_000;
     const sevenDaysMs = 7 * 86_400_000;
 
-    // Find trial users who signed up 5-7 days ago (haven't exhausted EB window) and haven't had this email sent
-    const ebCandidates = await User.find({
+    const promoCandidates = await User.find({
       plan: 'trial',
       createdAt: {
         $gte: new Date(now.getTime() - sevenDaysMs),
@@ -268,24 +266,21 @@ export async function GET(req: NextRequest) {
       $or: [{ stripeSubscriptionId: null }, { stripeSubscriptionId: { $exists: false } }],
     });
 
-    let earlyBirdEmailsSent = 0;
-    for (const user of ebCandidates) {
+    let promoEmailsSent = 0;
+    for (const user of promoCandidates) {
       try {
-        const earlyBirdEndsAt = new Date(new Date(user.createdAt).getTime() + EARLY_BIRD_MS);
-        if (earlyBirdEndsAt.getTime() <= now.getTime()) continue; // already expired
-        const hoursLeft = Math.ceil((earlyBirdEndsAt.getTime() - now.getTime()) / 3_600_000);
-        await sendEmail({ to: user.email, ...earlyBirdEndingTemplate(user, hoursLeft) });
+        await sendEmail({ to: user.email, ...promoEndingTemplate(user) });
         user.earlyBirdEndingEmailSent = true;
         await user.save();
-        earlyBirdEmailsSent++;
+        promoEmailsSent++;
       } catch (err) {
-        console.error('[cron/daily] Early-bird ending email error for user', user._id, err);
+        console.error('[cron/daily] Promo ending email error for user', user._id, err);
       }
     }
-    results.earlyBirdEmailsSent = earlyBirdEmailsSent;
+    results.promoEmailsSent = promoEmailsSent;
   } catch (err) {
     console.error('[cron/daily] Task 7 error:', err);
-    results.earlyBirdEmailsError = String(err);
+    results.promoEmailsError = String(err);
   }
 
   return NextResponse.json({ ok: true, ...results });

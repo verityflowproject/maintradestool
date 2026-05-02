@@ -52,15 +52,10 @@ Create these coupons in **Products → Coupons**:
 
 | Coupon name | Discount | Duration | Env var | Purpose |
 |-------------|----------|----------|---------|---------|
-| `EARLY_BIRD_FOREVER` | **34.48% off** | **Forever** | `STRIPE_COUPON_EARLY_BIRD` | Early-bird deal: $29→$19/mo, $290→$190/yr, locked in for life |
 | `RETENTION_50OFF_2MO` | 50% off | 2 months | `STRIPE_RETENTION_COUPON_50OFF_2MO` | Cancel-flow retention offer |
 | `WINBACK_50OFF_1MO` | 50% off | 1 month | `STRIPE_WINBACK_COUPON` | Win-back email offer |
 
-**`EARLY_BIRD_FOREVER` setup notes:**
-- Percent off: `34.48` (rounds cleanly to $19 on the $29 monthly price)
-- Duration: **Forever** — the discount never expires as long as the subscription stays active
-- Max redemptions: leave blank (eligibility is gated server-side to accounts within 7 days of signup)
-- The same coupon is applied for both monthly and annual checkout → $190/yr ($15.83/mo equivalent)
+For marketing campaigns, create coupons and then attach **Promotion codes** (Products → Promotion codes) to them. The Stripe Checkout page always shows the "Add promotion code" field so users can self-redeem. Set the active campaign code in the `PROMO_CODE` env var so it's included in trial emails.
 
 After creating them, copy the coupon IDs into your environment variables.
 
@@ -90,9 +85,12 @@ STRIPE_SECRET_KEY=
 STRIPE_PRICE_PRO_MONTHLY=
 STRIPE_PRICE_PRO_ANNUAL=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_COUPON_EARLY_BIRD=
 STRIPE_RETENTION_COUPON_50OFF_2MO=
 STRIPE_WINBACK_COUPON=
+
+# Optional: promotion code shown in trial emails (manage in Stripe Dashboard)
+PROMO_CODE=
+PROMO_CODE_DESCRIPTION=
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -105,19 +103,14 @@ GOOGLE_CLIENT_SECRET=
 ```
 Signup (free, no card)
   → 14-day full Pro trial
-  → Day 0:  Welcome email + trial-started email (leads with Early Bird deal)
-  → Days 0–7: EARLY BIRD window — $19/mo ($190/yr) forever
-     → Sticky countdown banner visible in all app pages
-     → Strike-through pricing on billing page
-     → Dashboard action card
-  → Day 5:  Early-bird ending email ("2 days left — $19/mo forever")
-  → Day 7:  Early bird expires, standard pricing resumes
+  → Day 0:  Welcome email + promo email 1hr later (includes PROMO_CODE if set)
+  → Day 5:  Promo reminder email (includes PROMO_CODE if set, urgency tone)
   → Day 7:  Midpoint email (jobs/revenue stats + upsell at standard price)
   → Day 11: 3-day warning (annual upsell, dual CTA)
   → Day 13: 1-day warning (hard urgency, list of losses)
   → Day 14: Trial expires → billing-expired hard paywall
   → Subscribe: Stripe Checkout (annual shown first)
-             If within early-bird window → EARLY_BIRD_FOREVER coupon auto-applied
+             "Add promotion code" field always shown — codes managed in Stripe Dashboard
   → Pro active
   → Cancel intent: CancelFlowModal (pause / discount / downgrade / final)
   → Cancelled: access until period end → win-back email at +30d
@@ -152,6 +145,6 @@ The daily cron at `/api/cron/daily` (called via Vercel Cron or external schedule
 4. Expire trials (mark `plan: 'expired'`, send expiry email)
 5. Win-back emails (30 days post-cancellation)
 6. Dunning escalation (day 5 past-due final notice)
-7. Early-bird ending email (day 5 of trial — "2 days left on $19/mo deal")
+7. Promo reminder email (day 5–7 of trial — includes PROMO_CODE if set)
 
 Set up in `vercel.json` or configure in the Vercel dashboard under **Cron Jobs**.

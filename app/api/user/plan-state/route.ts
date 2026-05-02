@@ -16,7 +16,7 @@ export async function GET() {
 
   const user = await User.findById(session.user.id)
     .select(
-      'plan trialEndsAt subscriptionStatus subscriptionEndsAt subscriptionPlan pastDueSince createdAt',
+      'plan trialEndsAt subscriptionStatus subscriptionEndsAt subscriptionPlan pastDueSince',
     )
     .lean<{
       plan: string;
@@ -25,7 +25,6 @@ export async function GET() {
       subscriptionEndsAt: Date | null;
       subscriptionPlan: string | null;
       pastDueSince: Date | null;
-      createdAt: Date;
     } | null>();
 
   if (!user) {
@@ -44,7 +43,6 @@ export async function GET() {
       | null,
     subscriptionEndsAt: user.subscriptionEndsAt,
     pastDueSince: user.pastDueSince,
-    createdAt: user.createdAt,
   });
 
   return NextResponse.json({
@@ -54,6 +52,5 @@ export async function GET() {
       ? user.subscriptionEndsAt.toISOString()
       : null,
     subscriptionPlan: user.subscriptionPlan,
-    // earlyBirdEndsAt is already a string | null from getPlanState
   });
 }

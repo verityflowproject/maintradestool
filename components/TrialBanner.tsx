@@ -56,8 +56,6 @@ export default function TrialBanner() {
 
   if (!mounted || !state) return null;
   if (state.plan !== 'trial') return null;
-  // EarlyBirdBanner takes over during the 7-day early-bird window
-  if (state.earlyBirdEligible) return null;
   if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) return null;
 
   const isLastDay = state.daysLeft <= 1;

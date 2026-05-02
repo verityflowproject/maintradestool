@@ -331,22 +331,29 @@ export function subscriptionCancelledTemplate(
 
 // ── Lifecycle / conversion emails ────────────────────────────────────────────
 
-export function trialStartedTemplate(
+export function promoTemplate(
   user: Pick<IUser, '_id' | 'firstName' | 'email'>
 ): TemplateResult {
+  const promoCode = process.env.PROMO_CODE;
+  const promoDescription = process.env.PROMO_CODE_DESCRIPTION;
+
+  const promoBlock =
+    promoCode && promoDescription
+      ? `
+      <div style="background:#EFF6FF;border:2px solid #1E90FF;border-radius:10px;padding:16px 18px;margin:18px 0;">
+        <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#1E3A8A;">Limited-time offer</p>
+        <p style="margin:0 0 8px;color:#1E40AF;">${promoDescription}</p>
+        <p style="margin:0;font-size:14px;font-weight:700;color:#1E3A8A;">Use code <span style="background:#fff;border:1px solid #93C5FD;border-radius:4px;padding:2px 8px;font-family:monospace;">${promoCode}</span> at checkout on your billing page.</p>
+      </div>`
+      : '';
+
   return {
-    subject: `Your 14-day Pro trial is live, ${user.firstName} — claim $19/mo before day 7`,
-    preheader: 'Early Bird deal: $19/mo locked in forever if you upgrade in the next 7 days.',
-    heading: 'Pro access, 14 days. Plus an Early Bird deal.',
+    subject: `Your 14-day Pro trial is live — here's what to do first`,
+    preheader: 'Full Pro access for 14 days. No credit card required.',
+    heading: `Pro access unlocked, ${user.firstName}`,
     body: `
       <p>Hi ${user.firstName}, you now have full Pro access for 14 days — no credit card required.</p>
-
-      <div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:10px;padding:16px 18px;margin:18px 0;">
-        <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#92400E;">⚡ EARLY BIRD DEAL — 7 days only</p>
-        <p style="margin:0 0 8px;color:#78350F;">Upgrade within your first 7 days and lock in <strong>$19/mo forever</strong> (instead of $29). Or go annual at <strong>$190/yr</strong> ($15.83/mo) — the best deal we offer, ever.</p>
-        <p style="margin:0;font-size:12px;color:#92400E;font-style:italic;">After day 7, the price returns to $29/mo and this offer is gone permanently.</p>
-      </div>
-
+      ${promoBlock}
       <p>Here's what's unlocked right now:</p>
       <ul style="margin:12px 0;padding-left:20px;">
         <li style="margin-bottom:8px;"><strong>Voice job logging</strong> — describe a job out loud, we capture every detail.</li>
@@ -354,9 +361,9 @@ export function trialStartedTemplate(
         <li style="margin-bottom:8px;"><strong>Customer management</strong> — full contact history in one place.</li>
         <li style="margin-bottom:8px;"><strong>Public booking page</strong> — let customers request jobs directly.</li>
       </ul>
-      <p style="color:#666;font-size:13px;">No surprise charges — ever. We'll remind you a few days before the Early Bird window closes.</p>
+      <p style="color:#666;font-size:13px;">No surprise charges — ever. We'll remind you a few days before your trial ends.</p>
     `,
-    ctaText: 'Claim Early Bird Deal →',
+    ctaText: 'Go to Billing →',
     ctaUrl: `${APP_URL}/settings/billing`,
     userId: String(user._id),
     preferenceKey: 'productUpdates',
@@ -364,35 +371,37 @@ export function trialStartedTemplate(
   };
 }
 
-export function earlyBirdEndingTemplate(
-  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
-  hoursLeft: number
+export function promoEndingTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>
 ): TemplateResult {
-  const expiresAt = new Date(Date.now() + hoursLeft * 3_600_000);
-  const expiryStr = expiresAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const promoCode = process.env.PROMO_CODE;
+  const promoDescription = process.env.PROMO_CODE_DESCRIPTION;
+
+  const promoBlock =
+    promoCode && promoDescription
+      ? `
+      <div style="background:#EFF6FF;border:2px solid #1E90FF;border-radius:10px;padding:16px 18px;margin:18px 0;">
+        <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#1E3A8A;">Your offer is still available</p>
+        <p style="margin:0 0 8px;color:#1E40AF;">${promoDescription}</p>
+        <p style="margin:0;font-size:14px;font-weight:700;color:#1E3A8A;">Use code <span style="background:#fff;border:1px solid #93C5FD;border-radius:4px;padding:2px 8px;font-family:monospace;">${promoCode}</span> at checkout — enter it in the "Add promotion code" field.</p>
+      </div>`
+      : '';
+
   return {
-    subject: `2 days left on your $19/mo Early Bird deal, ${user.firstName}`,
-    preheader: `After ${expiryStr}, the price goes back to $29/mo permanently.`,
-    heading: "Your $19/mo deal expires soon.",
+    subject: `${user.firstName}, your VerityFlow trial is halfway through`,
+    preheader: 'Your data is all here — upgrade before your trial ends.',
+    heading: 'Trial update',
     body: `
-      <p>Hi ${user.firstName}, just a heads-up — your Early Bird window closes on <strong>${expiryStr}</strong>.</p>
-
-      <div style="background:#FEF3C7;border:2px solid #F59E0B;border-radius:10px;padding:16px 18px;margin:18px 0;">
-        <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#92400E;">⚡ Early Bird ends in ~${hoursLeft} hours</p>
-        <p style="margin:0;color:#78350F;">After <strong>${expiryStr}</strong>, the price returns to <strong>$29/mo</strong> and this rate is gone permanently. Claim it now and pay $19/mo for as long as your subscription stays active.</p>
-      </div>
-
-      <p><strong>What you lock in:</strong></p>
+      <p>Hi ${user.firstName}, just checking in — your VerityFlow trial is still active.</p>
+      ${promoBlock}
+      <p>When your trial ends, choose a plan to keep going:</p>
       <ul style="margin:12px 0;padding-left:20px;">
-        <li style="margin-bottom:8px;">$19/mo forever (saves $120/yr vs $29/mo standard)</li>
-        <li style="margin-bottom:8px;">Or choose annual at <strong>$190/yr ($15.83/mo)</strong> — even better value</li>
-        <li style="margin-bottom:8px;">All Pro features: voice logging, invoices, booking page, customer management</li>
-        <li style="margin-bottom:8px;">No lock-in — cancel any time, but the discount is yours to keep</li>
+        <li style="margin-bottom:8px;"><strong>Annual — $290/yr</strong> ($24/mo, save 20%)</li>
+        <li style="margin-bottom:8px;"><strong>Monthly — $29/mo</strong>, cancel any time</li>
       </ul>
-
-      <p style="font-size:13px;color:#666;">Annual stacking: with the Early Bird deal, annual becomes $190/yr. That's $15.83/mo — the lowest price VerityFlow will ever be. Monthly is $19 ($10/mo savings). Both beat the standard rate permanently.</p>
+      <p style="color:#666;font-size:13px;">Your data is safe either way — everything you've logged stays intact.</p>
     `,
-    ctaText: 'Claim $19/mo Before It Expires →',
+    ctaText: 'Upgrade Now →',
     ctaUrl: `${APP_URL}/settings/billing`,
     userId: String(user._id),
     preferenceKey: 'trialReminders',

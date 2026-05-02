@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
-import { welcomeTemplate, trialStartedTemplate } from '@/lib/email/templates';
+import { welcomeTemplate, promoTemplate } from '@/lib/email/templates';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
@@ -107,9 +107,9 @@ export async function POST(req: Request) {
     });
 
     sendEmail({ to: user.email, ...welcomeTemplate(user) }).catch(console.error);
-    // Trial-started email sent after a short delay so it doesn't arrive simultaneously with welcome
+    // Promo email sent after a short delay so it doesn't arrive simultaneously with welcome
     setTimeout(() => {
-      sendEmail({ to: user.email, ...trialStartedTemplate(user) }).catch(console.error);
+      sendEmail({ to: user.email, ...promoTemplate(user) }).catch(console.error);
     }, 60 * 60 * 1000); // 1 hour later
 
     return NextResponse.json(

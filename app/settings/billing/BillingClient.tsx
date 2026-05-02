@@ -15,10 +15,7 @@ interface Props {
   subscriptionEndsAt: string | null;
   hasStripeCustomer: boolean;
   trialEndsAt: string | null;
-  createdAt: string | null;
 }
-
-const EARLY_BIRD_MS = 7 * 24 * 60 * 60 * 1000;
 
 const DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -44,12 +41,7 @@ export default function BillingClient({
   subscriptionPlan,
   subscriptionEndsAt,
   trialEndsAt,
-  createdAt,
 }: Props) {
-  const isEarlyBirdEligible =
-    plan === 'trial' &&
-    !!createdAt &&
-    Date.now() < new Date(createdAt).getTime() + EARLY_BIRD_MS;
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -301,7 +293,7 @@ export default function BillingClient({
           <p className="settings-section-heading" style={{ marginBottom: 12 }}>
             CHOOSE A PLAN
           </p>
-          <PlanCards onSelect={handleCheckout} loadingPlan={loadingPlan} earlyBird={isEarlyBirdEligible} />
+          <PlanCards onSelect={handleCheckout} loadingPlan={loadingPlan} />
         </>
       )}
 
