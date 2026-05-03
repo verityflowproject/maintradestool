@@ -5,6 +5,7 @@ import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
 import type { IJob } from '@/lib/models/Job';
 import User from '@/lib/models/User';
+import { getPlanState } from '@/lib/planState';
 import EditClient from './EditClient';
 
 function toDateStr(d: Date | null | undefined): string {
@@ -43,8 +44,29 @@ export default async function EditJobPage({
   if (job.status === 'paid') redirect(`/jobs/${params.jobId}`);
 
   const user = await User.findById(session.user.id)
-    .select('hourlyRate partsMarkup')
-    .lean<{ hourlyRate?: number; partsMarkup?: number } | null>();
+    .select(
+      'hourlyRate partsMarkup plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince',
+    )
+    .lean<{
+      hourlyRate?: number;
+      partsMarkup?: number;
+      plan: 'trial' | 'pro' | 'cancelled';
+      trialEndsAt: Date;
+      subscriptionStatus:
+        | 'trialing'
+        | 'active'
+        | 'past_due'
+        | 'canceled'
+        | 'incomplete'
+        | null;
+      subscriptionEndsAt: Date | null;
+      pastDueSince: Date | null;
+    } | null>();
+
+  if (user) {
+    const planState = getPlanState(user);
+    if (!planState.canCreateJobs) redirect('/billing-expired');
+  }
 
   const jobValues = {
     customerId: job.customerId ? String(job.customerId) : null,

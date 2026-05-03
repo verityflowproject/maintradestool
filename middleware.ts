@@ -4,19 +4,28 @@ import type { JWT } from 'next-auth/jwt';
 import { getToken } from 'next-auth/jwt';
 import { isAdminUnlockedFromRequest } from '@/lib/admin/adminUnlock';
 
-// Routes expired users may still visit (read-only data or upgrade funnel)
+// Routes expired users may still visit (read-only data, upgrade funnel, and
+// /jobs + /feature-board which are also read-only — write/voice routes inside
+// /jobs are still blocked by the per-page server guards).
 const BILLING_PASSTHROUGH =
-  /^\/(dashboard|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact)(\/|$|\?)/;
+  /^\/(dashboard|jobs|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact|feature-board)(\/|$|\?)/;
 
 function isTokenExpired(token: JWT): boolean {
-  const status = token.subscriptionStatus as string | null | undefined;
+  const status = token.subscriptionStatus;
+  const trialEndsAt = token.trialEndsAt;
+
+  // Legacy JWT (issued before commit d0b07a8 when these fields were added).
+  // We can't make a decision from the cookie alone — defer to per-page guards
+  // (which read the live DB) instead of forcing /billing-expired and causing
+  // a redirect loop for users on a still-active trial.
+  if (status === undefined && trialEndsAt === undefined) return false;
+
   if (status === 'active' || status === 'trialing') return false;
   if (status === 'canceled') {
-    const endsAt = token.subscriptionEndsAt as string | null | undefined;
+    const endsAt = token.subscriptionEndsAt;
     if (endsAt) return new Date(endsAt).getTime() <= Date.now();
     return true;
   }
-  const trialEndsAt = token.trialEndsAt as string | null | undefined;
   if (trialEndsAt) return new Date(trialEndsAt).getTime() <= Date.now();
   return true;
 }

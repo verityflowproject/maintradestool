@@ -31,5 +31,8 @@ declare module 'next-auth/jwt' {
     businessName: string;
     plan: string;
     onboardingCompleted: boolean;
+    trialEndsAt?: string | null;
+    subscriptionStatus?: string | null;
+    subscriptionEndsAt?: string | null;
   }
 }
