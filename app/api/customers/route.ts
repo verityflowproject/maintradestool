@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Customer from '@/lib/models/Customer';
 import { deriveFullName } from '@/lib/utils/customerName';
+import { requireCapability } from '@/lib/requirePlan';
 
 export const runtime = 'nodejs';
 
@@ -54,6 +55,9 @@ export async function POST(req: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const gate = await requireCapability(session.user.id, 'canCreateJobs');
+  if (!gate.ok) return gate.response;
 
   const body = (await req.json().catch(() => null)) as {
     firstName?: string;

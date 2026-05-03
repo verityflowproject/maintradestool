@@ -1,7 +1,25 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import type { JWT } from 'next-auth/jwt';
 import { getToken } from 'next-auth/jwt';
 import { isAdminUnlockedFromRequest } from '@/lib/admin/adminUnlock';
+
+// Routes expired users may still visit (read-only data or upgrade funnel)
+const BILLING_PASSTHROUGH =
+  /^\/(dashboard|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact)(\/|$|\?)/;
+
+function isTokenExpired(token: JWT): boolean {
+  const status = token.subscriptionStatus as string | null | undefined;
+  if (status === 'active' || status === 'trialing') return false;
+  if (status === 'canceled') {
+    const endsAt = token.subscriptionEndsAt as string | null | undefined;
+    if (endsAt) return new Date(endsAt).getTime() <= Date.now();
+    return true;
+  }
+  const trialEndsAt = token.trialEndsAt as string | null | undefined;
+  if (trialEndsAt) return new Date(trialEndsAt).getTime() <= Date.now();
+  return true;
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -61,6 +79,15 @@ export async function middleware(req: NextRequest) {
 
   if (isOnboarding && token && token.onboardingCompleted === true) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  // Billing gate — redirect expired users away from write/feature routes.
+  // Read-only data pages and settings are intentionally let through so users
+  // can still see their data and reach the upgrade page.
+  if (isProtected && token && isTokenExpired(token)) {
+    if (!BILLING_PASSTHROUGH.test(pathname)) {
+      return NextResponse.redirect(new URL('/billing-expired', req.url));
+    }
   }
 
   return NextResponse.next();

@@ -6,6 +6,7 @@ import { Plus, Search, Users, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import { initials, pickColor } from '@/lib/utils/customerAvatar';
 import AddCustomerModal from './AddCustomerModal';
+import ExpiredOverlay from '@/components/ExpiredOverlay';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ export interface CustomerRow {
 
 interface Props {
   initial: CustomerRow[];
+  isExpired?: boolean;
+  totalCount?: number;
 }
 
 function formatAddress(c: CustomerRow): string {
@@ -68,7 +71,7 @@ function CustomerCard({ c }: { c: CustomerRow }) {
 
 // ── Main client component ──────────────────────────────────────────────
 
-export default function CustomersClient({ initial }: Props) {
+export default function CustomersClient({ initial, isExpired = false, totalCount }: Props) {
   const [customers, setCustomers] = useState<CustomerRow[]>(initial);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -94,6 +97,7 @@ export default function CustomersClient({ initial }: Props) {
 
   return (
     <main className="customers-page">
+      {isExpired && <ExpiredOverlay noun="customers" count={totalCount} />}
       {/* ── Header ── */}
       <header className="customers-header">
         <div className="customers-header__left">

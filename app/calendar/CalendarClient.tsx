@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import { useToast } from '@/components/Toast/ToastProvider';
+import ExpiredOverlay from '@/components/ExpiredOverlay';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ interface Props {
   initialMonth: number;
   initialJobs: CalendarJob[];
   initialUnscheduled: CalendarJob[];
+  isExpired?: boolean;
 }
 
 // ── Date helpers ───────────────────────────────────────────────────────
@@ -191,6 +193,7 @@ export default function CalendarClient({
   initialMonth,
   initialJobs,
   initialUnscheduled,
+  isExpired = false,
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
@@ -374,6 +377,7 @@ export default function CalendarClient({
       onPointerUp={onDragPointerUp}
       onPointerCancel={() => setDragging(null)}
     >
+      {isExpired && <ExpiredOverlay noun="calendar" />}
       {/* Header */}
       <header className="calendar-header">
         <button className="calendar-nav-btn" onClick={prev} aria-label="Previous month">

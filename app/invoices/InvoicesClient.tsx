@@ -7,6 +7,7 @@ import { Receipt, Mail, MessageSquare, Download } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import { useToast } from '@/components/Toast/ToastProvider';
 import type { InvoiceRow, InvoiceCounts, InvoiceSummary, InvoiceStatusFilter } from '@/lib/invoices/listInvoices';
+import ExpiredOverlay from '@/components/ExpiredOverlay';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -15,6 +16,8 @@ interface Props {
   initialCounts: InvoiceCounts;
   summary: InvoiceSummary;
   initialFilter: string;
+  isExpired?: boolean;
+  totalCount?: number;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -377,6 +380,8 @@ export default function InvoicesClient({
   initialCounts,
   summary,
   initialFilter,
+  isExpired = false,
+  totalCount,
 }: Props) {
   const [invoices, setInvoices] = useState<InvoiceRow[]>(initialInvoices);
   const [counts, setCounts] = useState<InvoiceCounts>(initialCounts);
@@ -432,6 +437,7 @@ export default function InvoicesClient({
 
   return (
     <div className="invoices-page">
+      {isExpired && <ExpiredOverlay noun="invoices" count={totalCount} />}
       {/* Header */}
       <header className="invoices-header">
         <h1 className="invoices-title">Invoices</h1>

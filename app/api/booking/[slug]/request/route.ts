@@ -4,6 +4,7 @@ import User from '@/lib/models/User';
 import BookingRequest from '@/lib/models/BookingRequest';
 import { sendMail, FROM_ADDRESS } from '@/lib/email/gmail';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { getPlanState } from '@/lib/planState';
 
 export const runtime = 'nodejs';
 
@@ -48,9 +49,14 @@ export async function POST(
   const user = await User.findOne({
     bookingSlug: params.slug,
     bookingEnabled: true,
-  }).select('_id email firstName businessName');
+  }).select('_id email firstName businessName plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince');
 
   if (!user) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const ownerState = getPlanState(user);
+  if (!ownerState.isActive) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

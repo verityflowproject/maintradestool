@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Inbox } from 'lucide-react';
+import ExpiredOverlay from '@/components/ExpiredOverlay';
 
 export interface RequestRow {
   _id: string;
@@ -19,6 +20,8 @@ export interface RequestRow {
 
 interface Props {
   initialRequests: RequestRow[];
+  isExpired?: boolean;
+  totalCount?: number;
 }
 
 const STATUS_LABEL: Record<RequestRow['status'], string> = {
@@ -35,9 +38,10 @@ const DATE_FMT = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 });
 
-export default function RequestsClient({ initialRequests }: Props) {
+export default function RequestsClient({ initialRequests, isExpired = false, totalCount }: Props) {
   return (
     <div className="requests-page page-padding">
+      {isExpired && <ExpiredOverlay noun="requests" count={totalCount} />}
       <div className="requests-page__header">
         <h1 className="requests-page__title">Requests</h1>
       </div>

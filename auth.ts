@@ -111,6 +111,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.businessName = dbUser.businessName;
             token.plan = dbUser.plan;
             token.onboardingCompleted = dbUser.onboardingCompleted;
+            token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
+            token.subscriptionStatus = dbUser.subscriptionStatus ?? null;
+            token.subscriptionEndsAt = dbUser.subscriptionEndsAt?.toISOString() ?? null;
           }
         }
       }

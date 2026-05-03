@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
+import User from '@/lib/models/User';
+import { getPlanState } from '@/lib/planState';
 import CalendarClient from './CalendarClient';
 
 function serializeJob(doc: Record<string, unknown>) {
@@ -32,7 +34,7 @@ export default async function CalendarPage() {
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 1);
 
-  const [rows, unscheduledRows] = await Promise.all([
+  const [rows, unscheduledRows, dbUser] = await Promise.all([
     Job.find({
       userId: session.user.id,
       scheduledDate: { $gte: startOfMonth, $lt: endOfMonth },
@@ -49,7 +51,19 @@ export default async function CalendarPage() {
       .limit(5)
       .select('_id title customerName scheduledDate scheduledStart scheduledEnd status total')
       .lean<Record<string, unknown>[]>(),
+
+    User.findById(session.user.id)
+      .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
+      .lean<{
+        plan: string;
+        trialEndsAt?: Date;
+        subscriptionStatus?: string | null;
+        subscriptionEndsAt?: Date | null;
+        pastDueSince?: Date | null;
+      }>(),
   ]);
+
+  const planState = dbUser ? getPlanState(dbUser as Parameters<typeof getPlanState>[0]) : null;
 
   return (
     <CalendarClient
@@ -57,6 +71,7 @@ export default async function CalendarPage() {
       initialMonth={month}
       initialJobs={rows.map(serializeJob)}
       initialUnscheduled={unscheduledRows.map(serializeJob)}
+      isExpired={planState ? !planState.isActive : false}
     />
   );
 }

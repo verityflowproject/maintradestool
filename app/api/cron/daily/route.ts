@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
     for (const user of expiredUsers) {
       try {
         user.plan = 'expired';
-        await user.save();
+        user.bookingEnabled = false;
         await sendEmail({
           to: user.email,
           ...trialExpiredTemplate(user),

@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import { listInvoices, getInvoiceSummary } from '@/lib/invoices/listInvoices';
+import User from '@/lib/models/User';
+import { getPlanState } from '@/lib/planState';
 import InvoicesClient from './InvoicesClient';
 
 export default async function InvoicesPage({
@@ -19,10 +21,21 @@ export default async function InvoicesPage({
 
   await dbConnect();
 
-  const [{ invoices, counts }, summary] = await Promise.all([
+  const [{ invoices, counts }, summary, dbUser] = await Promise.all([
     listInvoices(session.user.id, 'all'),
     getInvoiceSummary(session.user.id),
+    User.findById(session.user.id)
+      .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
+      .lean<{
+        plan: string;
+        trialEndsAt?: Date;
+        subscriptionStatus?: string | null;
+        subscriptionEndsAt?: Date | null;
+        pastDueSince?: Date | null;
+      }>(),
   ]);
+
+  const planState = dbUser ? getPlanState(dbUser as Parameters<typeof getPlanState>[0]) : null;
 
   return (
     <InvoicesClient
@@ -30,6 +43,8 @@ export default async function InvoicesPage({
       initialCounts={counts}
       summary={summary}
       initialFilter={filterParam}
+      isExpired={planState ? !planState.isActive : false}
+      totalCount={counts.all}
     />
   );
 }
