@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -19,14 +19,31 @@ function GoogleIcon() {
 interface SignInModalProps {
   open: boolean;
   onClose: () => void;
+  defaultEmail?: string;
 }
 
-export default function SignInModal({ open, onClose }: SignInModalProps) {
+type ErrorState =
+  | { kind: 'incorrect' }
+  | { kind: 'google-only' }
+  | { kind: 'generic'; message: string }
+  | null;
+
+export default function SignInModal({
+  open,
+  onClose,
+  defaultEmail,
+}: SignInModalProps) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(defaultEmail ?? '');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState>(null);
+
+  // Pre-fill the email field whenever the modal is opened from a parent that
+  // already knows the user's email (e.g. AccountStep recovery flow).
+  useEffect(() => {
+    if (open && defaultEmail) setEmail(defaultEmail);
+  }, [open, defaultEmail]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,12 +58,31 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
       });
 
       if (res?.error) {
-        setError('Incorrect email or password.');
+        // Disambiguate "wrong password" vs "this email is a Google-only
+        // account" so the user isn't stuck wondering which to try.
+        try {
+          const methodRes = await fetch('/api/auth/check-method', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const methodJson = await methodRes.json().catch(() => ({}));
+          if (methodJson?.method === 'google') {
+            setError({ kind: 'google-only' });
+          } else {
+            setError({ kind: 'incorrect' });
+          }
+        } catch {
+          setError({ kind: 'incorrect' });
+        }
       } else {
         router.push('/dashboard');
       }
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError({
+        kind: 'generic',
+        message: 'Something went wrong. Please try again.',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -156,7 +192,18 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
             />
           </div>
 
-          {error && <p className="signin-error">{error}</p>}
+          {error?.kind === 'incorrect' && (
+            <p className="signin-error">Incorrect email or password.</p>
+          )}
+          {error?.kind === 'google-only' && (
+            <p className="signin-error">
+              This email signed up with Google. Use “Continue with Google”
+              above.
+            </p>
+          )}
+          {error?.kind === 'generic' && (
+            <p className="signin-error">{error.message}</p>
+          )}
 
           <button
             type="submit"

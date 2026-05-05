@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { signIn } from "next-auth/react";
 import { track } from "@vercel/analytics";
+import SignInModal from "@/components/SignInModal";
 import type { StepProps } from "../types";
 
 const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,6 +19,8 @@ function computeScore(p: string): number {
   return Math.min(s, 4);
 }
 
+type ExistingMode = "password" | "google" | null;
+
 export default function AccountStep({
   data,
   update,
@@ -29,11 +32,24 @@ export default function AccountStep({
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [existingMode, setExistingMode] = useState<ExistingMode>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   const score = useMemo(() => computeScore(password), [password]);
 
+  function clearEmailError() {
+    setErrors((e) => {
+      if (!e.email) return e;
+      const next = { ...e };
+      delete next.email;
+      return next;
+    });
+  }
+
   async function handleSubmit() {
     setSubmitError(null);
+    setExistingMode(null);
+    clearEmailError();
 
     const next: Record<string, string> = {};
     if (!EMAIL_RX.test(data.email)) {
@@ -62,25 +78,41 @@ export default function AccountStep({
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
 
       if (res.status === 201) {
         localStorage.setItem("verityflow_profile", JSON.stringify(data));
         track("signup_completed", { method: "email" });
-        await signIn("credentials", {
+
+        // Auto-sign in. If it silently fails, the user has a real account
+        // already created in the DB — surface a recovery path instead of
+        // letting them land on /dashboard with no cookie and bouncing back.
+        const signInRes = await signIn("credentials", {
           email: data.email,
           password,
           redirect: false,
         });
+
+        if (signInRes?.error) {
+          setSubmitError(
+            "Account created — please sign in to continue.",
+          );
+          setSignInOpen(true);
+          return;
+        }
+
         advanceStep(() => true);
       } else if (res.status === 409) {
-        setErrors((e) => ({
-          ...e,
-          email: "An account with this email already exists.",
-        }));
+        const reason: ExistingMode =
+          json?.reason === "google" ? "google" : "password";
+        setExistingMode(reason);
+      } else if (res.status === 429) {
+        setSubmitError(
+          "Too many signup attempts from this network. Please wait a few minutes and try again.",
+        );
       } else {
         setSubmitError(
-          json?.error ?? "Something went wrong. Please try again."
+          json?.error ?? "Something went wrong. Please try again.",
         );
       }
     } catch {
@@ -103,7 +135,11 @@ export default function AccountStep({
           className="input-field"
           placeholder="you@email.com"
           value={data.email}
-          onChange={(e) => update({ email: e.target.value })}
+          onChange={(e) => {
+            update({ email: e.target.value });
+            setExistingMode(null);
+            setSubmitError(null);
+          }}
           autoComplete="email"
         />
         {errors.email && <p className="field-error">{errors.email}</p>}
@@ -148,7 +184,43 @@ export default function AccountStep({
         {submitting ? "Creating account…" : "Create My Account →"}
       </button>
 
+      {existingMode === "password" && (
+        <div className="account-recovery">
+          <p className="field-error" style={{ marginBottom: 8 }}>
+            An account with this email already exists.
+          </p>
+          <button
+            type="button"
+            className="account-recovery-btn"
+            onClick={() => setSignInOpen(true)}
+          >
+            Sign in instead
+          </button>
+        </div>
+      )}
+
+      {existingMode === "google" && (
+        <div className="account-recovery">
+          <p className="field-error" style={{ marginBottom: 8 }}>
+            You already signed up with Google using this email.
+          </p>
+          <button
+            type="button"
+            className="account-recovery-btn"
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          >
+            Continue with Google
+          </button>
+        </div>
+      )}
+
       {submitError && <p className="field-error">{submitError}</p>}
+
+      <SignInModal
+        open={signInOpen}
+        onClose={() => setSignInOpen(false)}
+        defaultEmail={data.email}
+      />
     </div>
   );
 }

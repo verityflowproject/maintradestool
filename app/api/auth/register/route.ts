@@ -25,7 +25,8 @@ const NUMERIC_FIELDS = ['hourlyRate', 'partsMarkup'] as const;
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
-  const limit = rateLimit('register', ip, { max: 5, windowMs: 60 * 60 * 1000 });
+  // 20/hr is enough headroom for a Fiverr QA pass without inviting abuse.
+  const limit = rateLimit('register', ip, { max: 20, windowMs: 60 * 60 * 1000 });
   if (!limit.ok) {
     return NextResponse.json(
       { error: 'Too many registration attempts. Please try again later.' },
@@ -80,8 +81,13 @@ export async function POST(req: Request) {
 
     const existing = await User.findOne({ email }).lean();
     if (existing) {
+      // Distinguish password accounts from OAuth-only (Google) accounts so the
+      // client can offer the right recovery path ("Sign in" vs "Continue with Google").
       return NextResponse.json(
-        { error: 'Email already registered' },
+        {
+          error: 'Email already registered',
+          reason: existing.password ? 'password' : 'google',
+        },
         { status: 409 }
       );
     }
@@ -136,8 +142,14 @@ export async function POST(req: Request) {
       'code' in err &&
       (err as { code: number }).code === 11000
     ) {
+      // Race-condition fallback: another request created the same email between
+      // our findOne and create. Re-fetch to surface the correct reason.
+      const existing = await User.findOne({ email }).lean();
       return NextResponse.json(
-        { error: 'Email already registered' },
+        {
+          error: 'Email already registered',
+          reason: existing?.password ? 'password' : 'google',
+        },
         { status: 409 }
       );
     }
