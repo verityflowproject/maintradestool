@@ -80,6 +80,7 @@ export async function POST(req: Request) {
     await dbConnect();
 
     const existing = await User.findOne({ email }).lean();
+
     if (existing) {
       // Distinguish password accounts from OAuth-only (Google) accounts so the
       // client can offer the right recovery path ("Sign in" vs "Continue with Google").
@@ -142,6 +143,29 @@ export async function POST(req: Request) {
       'code' in err &&
       (err as { code: number }).code === 11000
     ) {
+      const errObj = err as {
+        code?: number;
+        keyPattern?: Record<string, unknown>;
+        keyValue?: Record<string, unknown>;
+        message?: string;
+      };
+
+      // Only treat the duplicate key as "email already registered" if the
+      // collision was actually on `email`. A duplicate on any other unique
+      // index (historically: a bad bookingSlug index that treated `null` as
+      // a value) must NOT be reported as a Google account — that produced
+      // the "You already signed up with Google" false positive on fresh
+      // emails. Surface those as real 500s so they can't hide.
+      const dupOnEmail = !!errObj.keyPattern && 'email' in errObj.keyPattern;
+
+      if (!dupOnEmail) {
+        console.error('Registration error (non-email dup key):', err);
+        return NextResponse.json(
+          { error: 'Registration failed' },
+          { status: 500 },
+        );
+      }
+
       // Race-condition fallback: another request created the same email between
       // our findOne and create. Re-fetch to surface the correct reason.
       const existing = await User.findOne({ email }).lean();

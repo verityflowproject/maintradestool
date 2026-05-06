@@ -33,18 +33,24 @@ function isTokenExpired(token: JWT): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // v5 beta stores the JWT in 'authjs.session-token' (dev) or
-  // '__Secure-authjs.session-token' (production/https).
-  const cookieName =
-    process.env.NODE_ENV === 'production'
-      ? '__Secure-authjs.session-token'
-      : 'authjs.session-token';
+  // next-auth v5 picks the cookie name based on the configured URL's protocol
+  // (https → '__Secure-authjs.session-token', http → 'authjs.session-token'),
+  // NOT based on NODE_ENV. So in dev (NODE_ENV=development) with
+  // NEXTAUTH_URL=https://..., the browser actually sends the secure-prefixed
+  // cookie even on http://localhost. Detect what's really in the request
+  // instead of guessing — this stays correct regardless of env mismatches.
+  const SECURE_COOKIE = '__Secure-authjs.session-token';
+  const INSECURE_COOKIE = 'authjs.session-token';
+  const cookieName = req.cookies.get(SECURE_COOKIE)
+    ? SECURE_COOKIE
+    : INSECURE_COOKIE;
 
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
     salt: cookieName,
     cookieName,
+    secureCookie: cookieName === SECURE_COOKIE,
   });
 
   const isProtected =

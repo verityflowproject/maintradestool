@@ -267,8 +267,6 @@ const UserSchema = new Schema<IUser>({
   bookingSlug: {
     type: String,
     default: null,
-    unique: true,
-    sparse: true,
   },
   bookingEnabled: {
     type: Boolean,
@@ -299,6 +297,20 @@ const UserSchema = new Schema<IUser>({
 UserSchema.pre('save', async function () {
   this.updatedAt = new Date();
 });
+
+// Unique only for users who have actually claimed a booking slug. We can't
+// use `sparse: true` here because the field defaults to `null` (not missing),
+// and a sparse unique index still considers `null` a value — which collides
+// across every user without a slug. A partial filter excludes the nulls
+// entirely from the index.
+UserSchema.index(
+  { bookingSlug: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { bookingSlug: { $type: 'string' } },
+    name: 'bookingSlug_1_partial',
+  },
+);
 
 const User: Model<IUser> =
   (mongoose.models.User as Model<IUser>) ||
