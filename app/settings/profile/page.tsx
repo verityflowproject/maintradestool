@@ -4,6 +4,8 @@ import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import ProfileSettingsClient from './ProfileSettingsClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProfileSettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/');

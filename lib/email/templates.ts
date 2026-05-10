@@ -535,7 +535,8 @@ const CONTACT_TYPE_LABEL: Record<ContactType, string> = {
 export function contactConfirmationTemplate(
   user: { email: string; firstName: string },
   type: ContactType,
-  snapshot: { title?: string; description: string }
+  snapshot: { title?: string; description: string },
+  submissionId?: string
 ): TemplateResult {
   const subjectMap: Record<ContactType, string> = {
     feature_request: 'We got your feature request 💡',
@@ -576,8 +577,10 @@ export function contactConfirmationTemplate(
         ${submissionLines}
       </div>
     `,
-    ctaText: 'View your submissions',
-    ctaUrl: `${APP_URL}/contact/history`,
+    ctaText: 'View your submission',
+    ctaUrl: submissionId
+      ? `${APP_URL}/contact/history/${submissionId}`
+      : `${APP_URL}/contact/history`,
     preferenceKey: 'productUpdates',
     preferenceLabel: 'account notification',
   };

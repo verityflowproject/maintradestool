@@ -12,6 +12,7 @@ export default function WorkDetailsStep({
   return (
     <div className="step-body">
       <h2>A bit more about your work</h2>
+      <p className="step-sub">A couple quick details so the AI can fine-tune your invoices.</p>
 
       <section className="step-section">
         <p className="section-label">What kind of jobs do you mainly do?</p>

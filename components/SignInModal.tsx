@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 function GoogleIcon() {
@@ -51,20 +51,29 @@ export default function SignInModal({
     setSubmitting(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const res = await signIn('credentials', {
-        email,
+        email: normalizedEmail,
         password,
         redirect: false,
       });
 
       if (res?.error) {
+        // NextAuth v5 can return a false-positive CredentialsSignin error even
+        // when the JWT cookie was set successfully. Verify via getSession first.
+        const session = await getSession();
+        if (session?.user) {
+          router.push('/dashboard');
+          return;
+        }
+
         // Disambiguate "wrong password" vs "this email is a Google-only
         // account" so the user isn't stuck wondering which to try.
         try {
           const methodRes = await fetch('/api/auth/check-method', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ email: normalizedEmail }),
           });
           const methodJson = await methodRes.json().catch(() => ({}));
           if (methodJson?.method === 'google') {
@@ -213,6 +222,20 @@ export default function SignInModal({
           >
             {submitting ? 'Signing in…' : 'Sign In'}
           </button>
+
+          <p className="signin-switch">
+            Don&rsquo;t have an account?{' '}
+            <button
+              type="button"
+              className="signin-switch-link"
+              onClick={() => {
+                handleClose();
+                router.push('/onboarding');
+              }}
+            >
+              Sign up
+            </button>
+          </p>
         </form>
       </div>
     </>

@@ -51,6 +51,10 @@ body {
   --glass-bg: var(--bg-glass);
   --fg-primary: var(--text-primary);
   --amber-400: var(--accent-text);
+
+  /* ── Layout heights (used by shell, install prompt, bottom nav) ── */
+  --bottom-nav-h: 80px;
+  --install-prompt-h: 0px;
 }
 
 * {
@@ -198,7 +202,7 @@ p {
 }
 
 .page-content {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--bottom-nav-h) + var(--install-prompt-h) + env(safe-area-inset-bottom));
 }
 
 /* Admin shell: breaks out of the 430px mobile constraint */
@@ -214,7 +218,7 @@ p {
 .admin-shell {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 32px 64px;
+  padding: 24px 28px 48px;
   min-height: 100dvh;
 }
 
@@ -351,7 +355,7 @@ p {
   position: relative;
   min-height: 100dvh;
   background: var(--bg-void);
-  padding: 56px 24px 24px;
+  padding: 16px 20px 24px;
   overflow-x: hidden;
 }
 
@@ -385,12 +389,16 @@ p {
   transition: width 0.4s ease;
 }
 
+.onboarding-header {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
 .onboarding-back {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -399,7 +407,7 @@ p {
   color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
-  z-index: 105;
+  margin: 0 0 0 -8px;
 }
 
 .onboarding-step {
@@ -464,7 +472,7 @@ p {
 
 /* ---- Step body helpers ---- */
 .step-body {
-  padding-top: 16px;
+  padding-top: 4px;
 }
 
 .step-body h2 {
@@ -484,14 +492,14 @@ p {
 }
 
 .step-cta {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 /* ---- Inline field ---- */
 .form-field {
   display: flex;
   flex-direction: column;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .form-field label {
@@ -510,7 +518,7 @@ p {
 }
 
 .account-recovery {
-  margin-top: 16px;
+  margin-top: 28px;
   padding: 14px 16px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
@@ -571,7 +579,7 @@ p {
   font-size: 34px;
   color: var(--text-primary);
   text-align: center;
-  margin-top: 20px;
+  margin-top: 16px;
   letter-spacing: -0.02em;
 }
 
@@ -594,7 +602,7 @@ p {
 }
 
 .welcome-cta {
-  margin-top: 32px;
+  margin-top: 24px;
 }
 
 .welcome-signin {
@@ -617,7 +625,7 @@ p {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .trade-card {
@@ -721,11 +729,11 @@ p {
 
 /* ---- Step section dividers ---- */
 .step-section {
-  margin-top: 28px;
+  margin-top: 20px;
 }
 
 .step-section:first-of-type {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .section-label {
@@ -901,7 +909,7 @@ p {
 /* ---- Info card (step 6) ---- */
 .info-card {
   padding: 12px 16px;
-  margin-top: 4px;
+  margin-top: 16px;
 }
 
 .info-card p {
@@ -920,10 +928,11 @@ p {
 }
 
 .invoice-card {
-  padding: 18px 20px;
-  display: flex;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 36px 1fr 22px;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
@@ -931,22 +940,28 @@ p {
 }
 
 .invoice-emoji {
-  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .invoice-text {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .invoice-title {
   font-family: var(--font-dm-sans), sans-serif;
   font-weight: 600;
   font-size: 15px;
+  line-height: 1.3;
   color: var(--text-primary);
 }
 
@@ -954,15 +969,20 @@ p {
   font-family: var(--font-dm-sans), sans-serif;
   font-weight: 400;
   font-size: 12px;
+  line-height: 1.4;
   color: var(--text-muted);
 }
 
 .invoice-check {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   color: var(--accent);
   flex-shrink: 0;
   transition: opacity 0.15s;
-  display: inline-flex;
 }
 
 .invoice-check.on {
@@ -1133,10 +1153,12 @@ p {
 .signin-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(2, 6, 14, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 250ms ease;
+  transition: opacity 200ms ease;
   z-index: 99;
 }
 
@@ -1147,23 +1169,27 @@ p {
 
 .signin-sheet {
   position: fixed;
+  top: 50%;
   left: 50%;
-  bottom: 0;
-  transform: translate(-50%, 100%);
-  width: 100%;
-  max-width: 430px;
+  transform: translate(-50%, -50%) scale(0.96);
+  width: calc(100% - 32px);
+  max-width: 400px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
   background: var(--bg-elevated);
-  border-top: 1px solid var(--quartz-border);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 32px 24px 40px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: transform 300ms ease-out;
+  border: 1px solid var(--quartz-border);
+  border-radius: var(--radius-xl);
+  padding: 32px 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease;
   z-index: 100;
 }
 
 .signin-sheet.open {
-  transform: translate(-50%, 0);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .signin-close {
@@ -1190,6 +1216,25 @@ p {
   font-family: var(--font-dm-sans), sans-serif;
   font-size: 13px;
   margin-top: 8px;
+}
+
+.signin-switch {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: var(--font-dm-sans), sans-serif;
+}
+
+.signin-switch-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--accent-text);
+  font-weight: 600;
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 13px;
 }
 
 /* ── Accessibility: respect reduced-motion preference ──────────────── */
@@ -1687,33 +1732,43 @@ p {
 
 @media (max-width: 480px) {
   .part-row {
-    grid-template-columns: 1fr 32px;
+    grid-template-columns: 1fr 1fr 1fr auto 32px;
     grid-template-rows: auto auto;
     row-gap: 8px;
-    column-gap: 8px;
+    column-gap: 6px;
   }
 
   .part-name {
-    grid-column: 1 / 2;
+    grid-column: 1 / 5;
     grid-row: 1;
   }
 
   .part-remove {
-    grid-column: 2 / 3;
+    grid-column: 5;
     grid-row: 1;
     justify-self: end;
   }
 
-  .part-qty,
-  .part-cost,
+  .part-qty {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .part-cost {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
   .part-markup {
-    grid-column: auto;
+    grid-column: 3;
     grid-row: 2;
   }
 
   .part-total {
+    grid-column: 4;
     grid-row: 2;
     text-align: right;
+    align-self: center;
   }
 }
 
@@ -2406,7 +2461,7 @@ p {
 .invoice-preview__header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--quartz-border);
 }
@@ -2415,13 +2470,18 @@ p {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 
 .invoice-preview__business-name {
   font-family: var(--font-syne), sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .invoice-preview__business-region {
@@ -2438,7 +2498,7 @@ p {
 
 .invoice-preview__label {
   font-family: var(--font-syne), sans-serif;
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--accent);
   letter-spacing: 0.04em;
@@ -2485,6 +2545,8 @@ p {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .invoice-preview__customer-detail {
@@ -3721,6 +3783,8 @@ p {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .greeting-pre {
@@ -3737,6 +3801,9 @@ p {
   font-weight: 800;
   color: var(--text-primary);
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .greeting-biz {
@@ -3744,6 +3811,9 @@ p {
   font-size: 13px;
   font-weight: 400;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-top-right {

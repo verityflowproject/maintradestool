@@ -106,7 +106,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       ...contactConfirmationTemplate({ email: userEmail, firstName: userFirstName }, type, {
         title: title?.trim(),
         description: description.trim(),
-      }),
+      }, submissionId),
     }).catch((err) => console.error('[contact/submit] user email failed:', err));
   }
 

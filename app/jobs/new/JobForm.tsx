@@ -218,7 +218,7 @@ export default function JobForm({
       ...f,
       parts: [
         ...f.parts,
-        { name: '', quantity: 1, unitCost: 0, markup: defaultMarkup },
+        { name: '', quantity: 1, unitCost: '', markup: '' },
       ],
     }));
   }
@@ -245,6 +245,21 @@ export default function JobForm({
       setTitleError('Job title is required.');
       shake();
       return;
+    }
+    const emptyPartIdx = form.parts.findIndex((p) => !p.name.trim());
+    if (emptyPartIdx !== -1) {
+      setSubmitError(`Part #${emptyPartIdx + 1} is missing a name.`);
+      shake();
+      return;
+    }
+    if (action === 'complete') {
+      const hasLabor = Number(form.laborHours) > 0 && Number(form.laborRate) > 0;
+      const hasParts = form.parts.length > 0 && form.parts.some((p) => Number(p.unitCost) > 0);
+      if (!hasLabor && !hasParts) {
+        setSubmitError('Add labor hours and rate, or at least one part with a cost, before marking complete.');
+        shake();
+        return;
+      }
     }
     setTitleError('');
     setSubmitError('');
@@ -443,7 +458,8 @@ export default function JobForm({
             placeholder="Phone  e.g. 817-555-0192"
             value={form.customerPhone}
             onChange={(e) => {
-              patchForm({ customerPhone: e.target.value, customerId: null });
+              const val = e.target.value.replace(/[^0-9+\-().\s]/g, '');
+              patchForm({ customerPhone: val, customerId: null });
               markEdited('customerPhone');
             }}
           />
@@ -665,9 +681,11 @@ export default function JobForm({
                 min={0}
                 placeholder="Qty"
                 value={p.quantity}
-                onChange={(e) =>
-                  updatePart(i, { quantity: e.target.value === '' ? '' : Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  if (e.target.value === '') { updatePart(i, { quantity: '' }); return; }
+                  const n = Number(e.target.value);
+                  if (!isNaN(n) && n >= 0) updatePart(i, { quantity: n });
+                }}
               />
               <input
                 className="input-field part-cost"
@@ -675,9 +693,11 @@ export default function JobForm({
                 min={0}
                 placeholder="Cost $"
                 value={p.unitCost}
-                onChange={(e) =>
-                  updatePart(i, { unitCost: e.target.value === '' ? '' : Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  if (e.target.value === '') { updatePart(i, { unitCost: '' }); return; }
+                  const n = Number(e.target.value);
+                  if (!isNaN(n) && n >= 0) updatePart(i, { unitCost: n });
+                }}
               />
               <input
                 className="input-field part-markup"
@@ -685,9 +705,11 @@ export default function JobForm({
                 min={0}
                 placeholder="Markup %"
                 value={p.markup}
-                onChange={(e) =>
-                  updatePart(i, { markup: e.target.value === '' ? '' : Number(e.target.value) })
-                }
+                onChange={(e) => {
+                  if (e.target.value === '') { updatePart(i, { markup: '' }); return; }
+                  const n = Number(e.target.value);
+                  if (!isNaN(n) && n >= 0) updatePart(i, { markup: n });
+                }}
               />
               <span className="money-display part-total">
                 ${fmt(calcPartTotal(p))}

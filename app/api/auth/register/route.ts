@@ -64,6 +64,13 @@ export async function POST(req: Request) {
 
   const email = (body.email as string).trim().toLowerCase();
   const password = body.password as string;
+
+  if (!/^(?=.*[A-Za-z])(?=.*\d)[\S]{8,72}$/.test(password)) {
+    return NextResponse.json(
+      { error: 'Password must be at least 8 characters and include a letter and a number.' },
+      { status: 400 },
+    );
+  }
   const firstName = body.firstName as string;
   const businessName = body.businessName as string;
   const trade = body.trade as string;

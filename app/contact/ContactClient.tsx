@@ -610,14 +610,20 @@ export default function ContactClient({ firstName }: Props) {
   const searchParams = useSearchParams();
   const deviceInfo = useDeviceInfo();
   const [expanded, setExpanded] = useState<ContactType | null>(null);
+  const didAutoExpand = useRef(false);
 
-  // Query param auto-expand
+  // Query param auto-expand — fires only once on mount
   useEffect(() => {
+    if (didAutoExpand.current) return;
     const qtype = searchParams.get('type');
     if (qtype && QUERY_TYPE_MAP[qtype]) {
       setExpanded(QUERY_TYPE_MAP[qtype]);
+      didAutoExpand.current = true;
+      // Clear the query param so back-navigation to dashboard shows fresh state
+      router.replace('/contact', { scroll: false });
     }
-  }, [searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggle = useCallback((type: ContactType) => {
     setExpanded((prev) => (prev === type ? null : type));

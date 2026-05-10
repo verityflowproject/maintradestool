@@ -1,5 +1,7 @@
 import type React from "react";
 
+export const ONBOARDING_KEY = "verityflow_onboarding_v1";
+
 export interface OnboardingData {
   trade: string;
   businessName: string;

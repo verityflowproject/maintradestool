@@ -14,15 +14,15 @@ export default async function RootPage() {
   }
 
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
       <main
         style={{
+          flex: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: "calc(100dvh - 200px)",
-          padding: "0 8px",
+          padding: "32px 16px",
         }}
       >
         <div style={{ width: "100%", maxWidth: "320px" }}>
@@ -63,7 +63,7 @@ export default async function RootPage() {
           </div>
 
           <div className="welcome-item stagger-5">
-            <Link href="/onboarding" className="welcome-signin" style={{ textDecoration: "none" }}>
+            <Link href="/onboarding?signin=1" className="welcome-signin" style={{ textDecoration: "none" }}>
               Already have an account?{" "}
               <span style={{ fontWeight: 500 }}>Sign in</span>
             </Link>
@@ -74,7 +74,7 @@ export default async function RootPage() {
       <footer
         style={{
           borderTop: "1px solid var(--quartz-border, rgba(255,255,255,0.07))",
-          padding: "40px 24px 28px",
+          padding: "32px 24px 28px",
           maxWidth: "960px",
           margin: "0 auto",
           width: "100%",
@@ -240,6 +240,6 @@ export default async function RootPage() {
           </p>
         </div>
       </footer>
-    </>
+    </div>
   );
 }

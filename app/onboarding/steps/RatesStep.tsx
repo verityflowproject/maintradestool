@@ -9,8 +9,15 @@ export default function RatesStep({
   advanceStep,
   shaking,
 }: StepProps) {
+  const onHourlyRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    if (raw === "") { update({ hourlyRate: "" }); return; }
+    if (!/^\d{1,4}$/.test(raw)) return;
+    update({ hourlyRate: Number(raw) });
+  };
+
   const onNumber =
-    (key: "hourlyRate" | "partsMarkup") =>
+    (key: "partsMarkup") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
       update({ [key]: v === "" ? "" : Number(v) } as Parameters<typeof update>[0]);
@@ -31,11 +38,15 @@ export default function RatesStep({
             id="rate-hourly"
             type="number"
             min={1}
-            inputMode="decimal"
+            max={9999}
+            step={1}
+            inputMode="numeric"
+            pattern="\d*"
+            maxLength={4}
             placeholder="85"
             className="input-field input-with-prefix"
             value={data.hourlyRate}
-            onChange={onNumber("hourlyRate")}
+            onChange={onHourlyRateChange}
           />
         </div>
         {errors.hourlyRate && (
@@ -86,11 +97,10 @@ export default function RatesStep({
         onClick={() =>
           advanceStep(() => {
             const next: Record<string, string> = {};
-            if (
-              typeof data.hourlyRate !== "number" ||
-              data.hourlyRate <= 0
-            ) {
+            if (typeof data.hourlyRate !== "number" || data.hourlyRate <= 0) {
               next.hourlyRate = "Enter your hourly rate.";
+            } else if (data.hourlyRate > 9999) {
+              next.hourlyRate = "Hourly rate must be 9999 or less.";
             }
             if (!data.region.trim()) {
               next.region = "Enter your state or province.";

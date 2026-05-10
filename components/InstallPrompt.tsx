@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Share, PlusSquare, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const DISMISS_KEY = "installDismissedAt";
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -14,11 +16,33 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+
 export default function InstallPrompt() {
   const [variant, setVariant] = useState<Variant>(null);
   const deferredRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  const pathname = usePathname() ?? "";
+  const { status: authStatus } = useSession();
+  const isFullScreenFlow =
+    pathname === "/" ||
+    pathname.startsWith("/onboarding") ||
+    pathname === "/jobs/new/voice" ||
+    /^\/jobs\/[^/]+\/voice(\/|$)/.test(pathname) ||
+    pathname.startsWith("/invoice/") ||
+    pathname.startsWith("/book/") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/contact");
+  const suppressed = authStatus !== "authenticated" || isFullScreenFlow;
+
+  // Force-clear the panel if we navigate into a suppressed route while it was open.
+  useEffect(() => {
+    if (suppressed && variant) setVariant(null);
+  }, [suppressed, variant]);
 
   useEffect(() => {
+    if (suppressed) return;
+
     // Already installed — never show
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
@@ -45,7 +69,27 @@ export default function InstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [suppressed]);
+
+  useEffect(() => {
+    if (!variant) {
+      document.documentElement.style.setProperty('--install-prompt-h', '0px');
+      return;
+    }
+    const el = panelRef.current;
+    if (!el) return;
+    const publish = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--install-prompt-h', `${h}px`);
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.setProperty('--install-prompt-h', '0px');
+    };
+  }, [variant]);
 
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
@@ -67,23 +111,26 @@ export default function InstallPrompt() {
 
   return (
     <div
+      ref={panelRef}
       role="dialog"
       aria-modal="true"
       aria-label="Install VerityFlow"
       style={{
         position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: "var(--bottom-nav-h, 0px)",
+        left: "50%",
+        right: "auto",
+        transform: "translateX(-50%)",
+        width: "100%",
+        maxWidth: 430,
         zIndex: 9999,
-        padding: "0 0 env(safe-area-inset-bottom, 0)",
         animation: "slideUp 0.3s ease",
       }}
     >
       <style>{`
         @keyframes slideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
+          from { transform: translateX(-50%) translateY(100%); opacity: 0; }
+          to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
         }
       `}</style>
 

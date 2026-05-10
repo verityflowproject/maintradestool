@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import SignInModal from '@/components/SignInModal';
 
 type WelcomeStepProps = {
@@ -10,6 +11,14 @@ type WelcomeStepProps = {
 
 export default function WelcomeStep({ advanceStep }: WelcomeStepProps) {
   const [signInOpen, setSignInOpen] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams?.get('signin') === '1') {
+      setSignInOpen(true);
+      window.history.replaceState({}, '', '/onboarding');
+    }
+  }, [searchParams]);
 
   return (
     <div
@@ -61,18 +70,6 @@ export default function WelcomeStep({ advanceStep }: WelcomeStepProps) {
             onClick={() => advanceStep(() => true)}
           >
             Get Started
-          </button>
-        </div>
-
-        {/* Sign in */}
-        <div className="welcome-item stagger-5">
-          <button
-            type="button"
-            className="welcome-signin"
-            onClick={() => setSignInOpen(true)}
-          >
-            Already have an account?{" "}
-            <span style={{ fontWeight: 500 }}>Sign in</span>
           </button>
         </div>
       </div>

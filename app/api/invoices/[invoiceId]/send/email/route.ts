@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils/formatCurrency';
 import { requireCapability } from '@/lib/requirePlan';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { firstInvoiceSentTemplate } from '@/lib/email/templates';
+import { FROM_ADDRESS } from '@/lib/email/gmail';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -180,7 +181,7 @@ export async function POST(
   const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     await resend.emails.send({
-      from: `${user.businessName} <onboarding@resend.dev>`,
+      from: process.env.RESEND_FROM_EMAIL ?? FROM_ADDRESS,
       to: body.email,
       subject: `Invoice ${invoice.invoiceNumber} from ${user.businessName}`,
       html: buildInvoiceEmailHtml(invoice, business),

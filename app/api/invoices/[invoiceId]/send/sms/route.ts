@@ -29,15 +29,19 @@ export async function POST(
     _id: params.invoiceId,
     userId: session.user.id,
   })
-    .select('invoiceNumber')
-    .lean<{ invoiceNumber: string } | null>();
+    .select('invoiceNumber publicAccessToken')
+    .lean<{ invoiceNumber: string; publicAccessToken: string } | null>();
 
   if (!invoice) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  if (!invoice.publicAccessToken) {
+    return NextResponse.json({ error: 'Invoice is not yet published' }, { status: 400 });
+  }
+
   const origin = new URL(req.url).origin;
-  const link = `${origin}/invoice/${encodeURIComponent(invoice.invoiceNumber)}`;
+  const link = `${origin}/invoice/${encodeURIComponent(invoice.invoiceNumber)}?t=${encodeURIComponent(invoice.publicAccessToken)}`;
 
   return NextResponse.json({ link });
 }

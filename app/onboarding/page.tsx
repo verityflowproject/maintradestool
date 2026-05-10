@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { track } from "@vercel/analytics";
 import { ChevronLeft } from "lucide-react";
-import { type OnboardingData, type StepProps, defaultState } from "./types";
+import { type OnboardingData, type StepProps, defaultState, ONBOARDING_KEY } from "./types";
 import WelcomeStep from "./steps/WelcomeStep";
 import TradeStep from "./steps/TradeStep";
 import BusinessStep from "./steps/BusinessStep";
@@ -41,6 +41,30 @@ export default function OnboardingPage() {
     status === "authenticated" &&
     !!session?.user?.id &&
     session.user.onboardingCompleted === false;
+
+  // Hydrate from localStorage on first mount (before Google-user effect)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ONBOARDING_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { step?: number; data?: Partial<OnboardingData> };
+      if (parsed?.data && typeof parsed.data === "object") {
+        setData((d) => ({ ...d, ...parsed.data }));
+      }
+      if (typeof parsed?.step === "number" && parsed.step > 0 && parsed.step <= 8) {
+        setCurrentStep(parsed.step);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist step + data whenever they change (skip Welcome=0 and Completion=9)
+  useEffect(() => {
+    if (currentStep === 0 || currentStep === 9) return;
+    try {
+      localStorage.setItem(ONBOARDING_KEY, JSON.stringify({ step: currentStep, data }));
+    } catch {}
+  }, [currentStep, data]);
 
   // On mount: if this is a Google user, skip Welcome and pre-fill name/email
   useEffect(() => {
@@ -122,6 +146,7 @@ export default function OnboardingPage() {
 
       if (res.ok) {
         track("signup_completed", { method: "google" });
+        try { localStorage.removeItem(ONBOARDING_KEY); } catch {}
         // Refresh the JWT so middleware sees onboardingCompleted: true
         await updateSession();
         router.push("/dashboard");
@@ -213,16 +238,18 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {showChrome && (
-        <button
-          type="button"
-          className="onboarding-back"
-          onClick={goBack}
-          aria-label="Go back"
-        >
-          <ChevronLeft size={24} />
-        </button>
-      )}
+      <div className="onboarding-header">
+        {showChrome && (
+          <button
+            type="button"
+            className="onboarding-back"
+            onClick={goBack}
+            aria-label="Go back"
+          >
+            <ChevronLeft size={22} />
+          </button>
+        )}
+      </div>
 
       <div className={`onboarding-step ${stepClass}`.trim()}>
         {renderStep()}

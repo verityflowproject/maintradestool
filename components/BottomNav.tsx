@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   LayoutGrid,
   Briefcase,
@@ -46,13 +47,17 @@ function NavButton({ tab, active }: { tab: NavTab; active: boolean }) {
 
 export default function BottomNav() {
   const pathname = usePathname() ?? "";
+  const { status: authStatus } = useSession();
   const { state } = usePlanState();
   const { show: showUpgradeGate } = useUpgradeGate();
 
   // Per-job voice page pattern: /jobs/<id>/voice
   const isJobVoicePage = /^\/jobs\/[^/]+\/voice(\/|$)/.test(pathname);
 
+  // Hide on full-screen flows and the public landing regardless of auth state,
+  // so the path check runs before the session check and avoids a flash on load.
   if (
+    pathname === "/" ||
     pathname.startsWith("/onboarding") ||
     pathname === "/jobs/new/voice" ||
     isJobVoicePage ||
@@ -63,6 +68,9 @@ export default function BottomNav() {
   ) {
     return null;
   }
+
+  // Hide for unauthenticated and loading states on all other routes.
+  if (authStatus !== "authenticated") return null;
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);

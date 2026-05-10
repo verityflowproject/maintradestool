@@ -56,7 +56,7 @@ const s = StyleSheet.create({
     flexDirection: 'column',
   },
   businessName: {
-    fontSize: 20,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     color: '#1A1A1A',
     marginBottom: 4,
@@ -70,7 +70,7 @@ const s = StyleSheet.create({
     alignItems: 'flex-end',
   },
   invoiceLabel: {
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: 'Helvetica-Bold',
     color: '#1E90FF',
     marginBottom: 6,

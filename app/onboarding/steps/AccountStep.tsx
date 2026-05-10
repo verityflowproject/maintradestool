@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { track } from "@vercel/analytics";
 import SignInModal from "@/components/SignInModal";
 import type { StepProps } from "../types";
+import { ONBOARDING_KEY } from "../types";
 
 const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_RX = /^(?=.*[A-Za-z])(?=.*\d)[\S]{8,72}$/;
 
 const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
 
@@ -55,8 +57,8 @@ export default function AccountStep({
     if (!EMAIL_RX.test(data.email)) {
       next.email = "Enter a valid email.";
     }
-    if (password.length < 8) {
-      next.password = "At least 8 characters.";
+    if (!PASSWORD_RX.test(password)) {
+      next.password = "Password must be at least 8 characters and include a letter and a number.";
     }
     if (Object.keys(next).length) {
       setErrors((e) => ({ ...e, ...next }));
@@ -84,23 +86,34 @@ export default function AccountStep({
         localStorage.setItem("verityflow_profile", JSON.stringify(data));
         track("signup_completed", { method: "email" });
 
-        // Auto-sign in. If it silently fails, the user has a real account
-        // already created in the DB — surface a recovery path instead of
-        // letting them land on /dashboard with no cookie and bouncing back.
-        const signInRes = await signIn("credentials", {
-          email: data.email,
-          password,
-          redirect: false,
-        });
+        // Auto-sign in with a session-verification fallback: NextAuth v5 can
+        // return { error: "CredentialsSignin" } even when the JWT cookie was
+        // set successfully a moment later. We retry once after a short delay
+        // and confirm via getSession() before surfacing a failure UI.
+        const trySignIn = async (): Promise<boolean> => {
+          const r = await signIn("credentials", {
+            email: data.email.trim().toLowerCase(),
+            password,
+            redirect: false,
+          });
+          if (!r?.error) return true;
+          const s = await getSession();
+          return !!s?.user;
+        };
 
-        if (signInRes?.error) {
-          setSubmitError(
-            "Account created — please sign in to continue.",
-          );
+        let ok = await trySignIn();
+        if (!ok) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          ok = await trySignIn();
+        }
+
+        if (!ok) {
+          setSubmitError("Account created — please sign in to continue.");
           setSignInOpen(true);
           return;
         }
 
+        try { localStorage.removeItem(ONBOARDING_KEY); } catch {}
         advanceStep(() => true);
       } else if (res.status === 409) {
         const reason: ExistingMode =

@@ -125,7 +125,7 @@ function WeeklyTooltip({
     >
       <p style={{ color: 'var(--text-muted)', margin: '0 0 2px' }}>{label}</p>
       <p style={{ color: 'var(--accent-text)', fontWeight: 700, margin: 0 }}>
-        {formatCurrency((payload[0]?.value as number | undefined) ?? 0)}
+        {formatCurrency((payload[0]?.payload?.earned as number | undefined) ?? (payload[0]?.value as number | undefined) ?? 0)}
       </p>
     </div>
   );
