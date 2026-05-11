@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ChevronLeft, ChevronDown, ChevronUp, Trash2, Wand2 } from 'lucide-react';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { useToast } from '@/components/Toast/ToastProvider';
@@ -30,6 +31,15 @@ interface FormState {
   laborRate: number | '';
   parts: JobPart[];
   taxRate: number | '';
+  assignedMemberIds: string[];
+}
+
+interface TeamMemberLite {
+  _id: string;
+  name: string;
+  color: string;
+  avatarInitials: string;
+  active: boolean;
 }
 
 interface CustomerResult {
@@ -54,6 +64,8 @@ interface Props {
   editJobId?: string;
   /** Current status of the job being edited — controls which buttons to show */
   currentStatus?: string;
+  /** Pre-populated assigned member IDs (for edit mode) */
+  initialAssignedMemberIds?: string[];
 }
 
 function fmt(n: number): string {
@@ -115,9 +127,12 @@ export default function JobForm({
   backHref = '/jobs',
   editJobId,
   currentStatus,
+  initialAssignedMemberIds,
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: session } = useSession();
+  const hasTeam = session?.user?.hasTeam === true;
 
   const baseDefaults: FormState = {
     customerId: null,
@@ -136,10 +151,30 @@ export default function JobForm({
     laborRate: defaultRate || '',
     parts: [],
     taxRate: '',
+    assignedMemberIds: initialAssignedMemberIds ?? [],
   };
 
-  const [form, setForm] = useState<FormState>({ ...baseDefaults, ...initialValues });
+  const [form, setForm] = useState<FormState>({
+    ...baseDefaults,
+    ...initialValues,
+    assignedMemberIds: initialAssignedMemberIds ?? initialValues?.assignedMemberIds ?? [],
+  });
   const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
+
+  const [teamMembers, setTeamMembers] = useState<TeamMemberLite[]>([]);
+  useEffect(() => {
+    if (!hasTeam) return;
+    fetch('/api/team')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && Array.isArray(d.members)) {
+          setTeamMembers(
+            (d.members as TeamMemberLite[]).filter((m) => m.active),
+          );
+        }
+      })
+      .catch(() => null);
+  }, [hasTeam]);
 
   const [newCustomerMode, setNewCustomerMode] = useState(false);
   const [showSchedule, setShowSchedule] = useState(!!(initialValues?.scheduledDate));
@@ -297,6 +332,7 @@ export default function JobForm({
         aiParsed: !!aiParsed,
         voiceTranscript: transcript ?? null,
         internalNotes: internalNotes ?? '',
+        assignedMemberIds: form.assignedMemberIds,
       };
 
       if (editJobId) {
@@ -740,6 +776,66 @@ export default function JobForm({
           )}
         </div>
       </section>
+
+      {/* ── Team Assignment (team accounts only) ───────────────────── */}
+      {hasTeam && teamMembers.length > 0 && (
+        <section className="job-form-section">
+          <p className="section-label" style={{ marginBottom: 8 }}>Assigned to</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {teamMembers.map((m) => {
+              const selected = form.assignedMemberIds.includes(m._id);
+              return (
+                <button
+                  key={m._id}
+                  type="button"
+                  onClick={() => {
+                    setForm((prev) => ({
+                      ...prev,
+                      assignedMemberIds: selected
+                        ? prev.assignedMemberIds.filter((id) => id !== m._id)
+                        : [...prev.assignedMemberIds, m._id],
+                    }));
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    border: `2px solid ${selected ? m.color : 'var(--quartz-border)'}`,
+                    background: selected ? `${m.color}22` : 'transparent',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: selected ? 600 : 400,
+                    color: selected ? m.color : 'var(--text-muted)',
+                    transition: 'all 0.15s',
+                  }}
+                  aria-pressed={selected}
+                >
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: m.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: '#fff',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {m.avatarInitials}
+                  </span>
+                  {m.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ══════════════════════════════════
           STEP 4 — Review & Save

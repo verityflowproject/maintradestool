@@ -14,6 +14,11 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Booking profile is owner-only
+  if (session.user.accountType === 'member') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = (await req.json().catch(() => null)) as {
     bookingEnabled?: boolean;
     bookingSlug?: string | null;

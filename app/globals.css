@@ -314,6 +314,14 @@ p {
   margin-top: 2px;
 }
 
+/* Compact nav labels when 5 tabs + FAB are visible on narrow screens */
+@media (max-width: 380px) {
+  .nav-item {
+    font-size: 9px;
+    padding: 4px 4px;
+  }
+}
+
 .nav-fab {
   width: 58px;
   height: 58px;

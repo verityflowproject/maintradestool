@@ -9,12 +9,12 @@ export const runtime = 'nodejs';
 export async function POST(req: Request) {
   void req;
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const perm = requirePerm(session, 'write', 'billing');
+  if (!perm.ok) return perm.response;
 
   await dbConnect();
-  const user = await User.findById(session.user.id)
+  const user = await User.findById(session!.user.id)
     .select('stripeSubscriptionId subscriptionPlan subscriptionStatus')
     .lean();
 

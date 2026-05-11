@@ -5,6 +5,8 @@ import { dbConnect } from '@/lib/mongodb';
 import BookingRequest from '@/lib/models/BookingRequest';
 import User from '@/lib/models/User';
 import { sendMail, FROM_ADDRESS } from '@/lib/email/gmail';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
@@ -13,19 +15,19 @@ export async function GET(
   { params }: { params: { requestId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'booking');
+  if (!perm.ok) return perm.response;
 
   if (!Types.ObjectId.isValid(params.requestId)) {
     return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   const request = await BookingRequest.findOne({
     _id: params.requestId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean();
 
   if (!request) {
@@ -63,9 +65,8 @@ export async function PATCH(
   { params }: { params: { requestId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'write', 'booking');
+  if (!perm.ok) return perm.response;
 
   if (!Types.ObjectId.isValid(params.requestId)) {
     return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -80,10 +81,11 @@ export async function PATCH(
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   const request = await BookingRequest.findOne({
     _id: params.requestId,
-    userId: session.user.id,
+    userId: ownerId,
   });
 
   if (!request) {
@@ -95,7 +97,7 @@ export async function PATCH(
 
   // Send confirmation email when accepted
   if (body.status === 'accepted' && request.email) {
-    const user = await User.findById(session.user.id)
+    const user = await User.findById(ownerId)
       .select('firstName businessName')
       .lean();
 

@@ -77,8 +77,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     return undefined;
   })();
 
+  // Attach to effectiveOwnerId so that owner and members share the same feedback bucket
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  const ownerId = effectiveOwnerId(session);
+
   const submission = await ContactSubmission.create({
-    userId: session.user.id,
+    userId: ownerId,
     userEmail,
     userFirstName,
     userBusinessName,

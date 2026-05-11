@@ -4,6 +4,8 @@ import { dbConnect } from '@/lib/mongodb';
 import Customer from '@/lib/models/Customer';
 import { deriveFullName } from '@/lib/utils/customerName';
 import { requireCapability } from '@/lib/requirePlan';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
@@ -11,13 +13,13 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'customer');
+  if (!perm.ok) return perm.response;
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
-  const raw = await Customer.find({ userId: session.user.id })
+  const raw = await Customer.find({ userId: ownerId })
     .sort({ updatedAt: -1 })
     .select(
       '_id firstName lastName businessName phone email address city state jobCount totalBilled createdAt',
@@ -52,11 +54,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'write', 'customer');
+  if (!perm.ok) return perm.response;
 
-  const gate = await requireCapability(session.user.id, 'canCreateJobs');
+  const gate = await requireCapability(session!.user.id, 'canCreateJobs');
   if (!gate.ok) return gate.response;
 
   const body = (await req.json().catch(() => null)) as {
@@ -79,10 +80,11 @@ export async function POST(req: Request) {
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   try {
     const doc = await Customer.create({
-      userId: session.user.id,
+      userId: ownerId,
       firstName,
       lastName: body?.lastName?.trim() ?? '',
       businessName,

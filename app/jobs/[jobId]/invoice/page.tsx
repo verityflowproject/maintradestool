@@ -18,14 +18,25 @@ export default async function InvoicePage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
 
   if (!Types.ObjectId.isValid(params.jobId)) notFound();
 
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+
+  const perm = requirePerm(session, 'read', 'invoice');
+  if (!perm.ok) redirect('/dashboard');
+
   await dbConnect();
+
+  const ownerId = getEOId(session);
 
   const job = await Job.findOne({
     _id: params.jobId,
-    userId: session.user.id,
+    userId: ownerId,
   })
     .select('_id title userId')
     .lean();
@@ -34,10 +45,10 @@ export default async function InvoicePage({
 
   const invoice = await Invoice.findOne({
     jobId: job._id,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean<Record<string, unknown> | null>();
 
-  const user = await User.findById(session.user.id)
+  const user = await User.findById(ownerId)
     .select('businessName region')
     .lean<{ businessName: string; region: string } | null>();
 

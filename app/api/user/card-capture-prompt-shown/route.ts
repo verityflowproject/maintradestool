@@ -12,6 +12,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Card capture prompt is owner-only
+  if (session.user.accountType === 'member') {
+    return NextResponse.json({ success: true }); // noop for members
+  }
+
   await dbConnect();
   await User.updateOne(
     { _id: session.user.id },

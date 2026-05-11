@@ -10,11 +10,16 @@ import CustomersClient from './CustomersClient';
 export default async function CustomersPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
 
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
   await dbConnect();
+  const ownerId = getEOId(session);
 
   const [raw, dbUser] = await Promise.all([
-    Customer.find({ userId: session.user.id })
+    Customer.find({ userId: ownerId })
       .sort({ updatedAt: -1 })
       .select(
         '_id firstName lastName businessName phone email address city state jobCount totalBilled createdAt',
@@ -35,7 +40,7 @@ export default async function CustomersPage() {
           createdAt?: Date;
         }[]
       >(),
-    User.findById(session.user.id)
+    User.findById(ownerId)
       .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
       .lean<{
         plan: string;

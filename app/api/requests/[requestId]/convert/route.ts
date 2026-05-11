@@ -26,6 +26,14 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Only owner/manager can convert booking requests (booking resource write)
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const convPerm = requirePerm(session, 'write', 'booking');
+  if (!convPerm.ok) return convPerm.response;
+
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  const ownerId = effectiveOwnerId(session);
+
   if (!Types.ObjectId.isValid(params.requestId)) {
     return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
   }
@@ -34,7 +42,7 @@ export async function POST(
 
   const request = await BookingRequest.findOne({
     _id: params.requestId,
-    userId: session.user.id,
+    userId: ownerId,
   });
 
   if (!request) {
@@ -46,7 +54,7 @@ export async function POST(
   }
 
   // Find or create customer
-  const resolved = await findOrCreateCustomer(session.user.id, {
+  const resolved = await findOrCreateCustomer(ownerId, {
     customerName: request.name,
     customerPhone: request.phone,
     customerAddress: request.address,
@@ -69,7 +77,7 @@ export async function POST(
 
   // Create the draft job
   const job = await Job.create({
-    userId: session.user.id,
+    userId: ownerId,
     customerId: customerId || null,
     customerName: request.name,
     customerPhone: request.phone,
@@ -91,7 +99,7 @@ export async function POST(
   // Increment customer job count
   if (customerId) {
     await Customer.updateOne(
-      { _id: customerId, userId: session.user.id },
+      { _id: customerId, userId: ownerId },
       { $inc: { jobCount: 1 }, $set: { updatedAt: new Date() } },
     );
   }

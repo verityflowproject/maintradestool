@@ -66,6 +66,14 @@ export default function OnboardingPage() {
     } catch {}
   }, [currentStep, data]);
 
+  // v2: team members skip onboarding entirely — their account is set up at invite acceptance
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.accountType === 'member') {
+      router.replace('/dashboard');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.accountType]);
+
   // On mount: if this is a Google user, skip Welcome and pre-fill name/email
   useEffect(() => {
     if (isGoogleUser && currentStep === 0) {

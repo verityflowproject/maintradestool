@@ -2,18 +2,19 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import BookingRequest from '@/lib/models/BookingRequest';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'booking');
+  if (!perm.ok) return perm.response;
 
   await dbConnect();
 
-  const requests = await BookingRequest.find({ userId: session.user.id })
+  const requests = await BookingRequest.find({ userId: effectiveOwnerId(session!) })
     .sort({ createdAt: -1 })
     .lean();
 

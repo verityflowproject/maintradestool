@@ -8,9 +8,19 @@ import JobForm from './JobForm';
 export default async function NewJobPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
+
+  // Apprentice and office cannot create jobs — redirect to dashboard
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+  const perm = requirePerm(session, 'write', 'job');
+  if (!perm.ok) redirect('/dashboard');
 
   await dbConnect();
-  const user = await User.findById(session.user.id)
+  const ownerId = getEOId(session);
+  const user = await User.findById(ownerId)
     .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince hourlyRate partsMarkup createdAt')
     .lean<{
       plan: 'trial' | 'pro' | 'cancelled';

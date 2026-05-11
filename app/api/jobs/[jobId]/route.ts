@@ -7,8 +7,29 @@ import type { IJob } from '@/lib/models/Job';
 import Invoice from '@/lib/models/Invoice';
 import type { IInvoice } from '@/lib/models/Invoice';
 import Customer from '@/lib/models/Customer';
+import TeamMember from '@/lib/models/TeamMember';
 import { findOrCreateCustomer } from '@/lib/utils/findOrCreateCustomer';
 import { requireCapability } from '@/lib/requirePlan';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId, memberId } from '@/lib/auth/scope';
+
+async function validateAssignedMemberIds(
+  rawIds: unknown,
+  ownerUserId: string,
+): Promise<Types.ObjectId[]> {
+  if (!Array.isArray(rawIds) || rawIds.length === 0) return [];
+  const validStrings = (rawIds as unknown[])
+    .map((id) => String(id))
+    .filter((id) => Types.ObjectId.isValid(id));
+  if (validStrings.length === 0) return [];
+  const owned = await TeamMember.find({
+    _id: { $in: validStrings },
+    ownerUserId,
+  })
+    .select('_id')
+    .lean<{ _id: Types.ObjectId }[]>();
+  return owned.map((m) => m._id);
+}
 
 export const runtime = 'nodejs';
 
@@ -17,21 +38,30 @@ export async function GET(
   { params }: { params: { jobId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'job');
+  if (!perm.ok) return perm.response;
 
   if (!Types.ObjectId.isValid(params.jobId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
   await dbConnect();
-  const job = await Job.findOne({ _id: params.jobId, userId: session.user.id })
+  const ownerId = effectiveOwnerId(session!);
+  const job = await Job.findOne({ _id: params.jobId, userId: ownerId })
     .populate('customerId')
     .lean();
 
   if (!job) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // 'own' scope: member may only read jobs they're assigned to
+  if (perm.scope === 'own') {
+    const mid = memberId(session!);
+    const ids = (job.assignedMemberIds ?? []) as Types.ObjectId[];
+    if (!mid || !ids.some((id) => String(id) === mid)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
   }
 
   return NextResponse.json({ job });
@@ -44,16 +74,17 @@ export async function DELETE(
   { params }: { params: { jobId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'delete', 'job');
+  if (!perm.ok) return perm.response;
+
   if (!Types.ObjectId.isValid(params.jobId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
-  const job = await Job.findOne({ _id: params.jobId, userId: session.user.id })
+  const job = await Job.findOne({ _id: params.jobId, userId: ownerId })
     .select('invoiceId customerId')
     .lean<{ _id: Types.ObjectId; invoiceId?: Types.ObjectId; customerId?: Types.ObjectId } | null>();
 
@@ -63,15 +94,15 @@ export async function DELETE(
 
   // Delete associated invoice if present
   if (job.invoiceId) {
-    await Invoice.deleteOne({ _id: job.invoiceId, userId: session.user.id });
+    await Invoice.deleteOne({ _id: job.invoiceId, userId: ownerId });
   }
 
-  await Job.deleteOne({ _id: job._id, userId: session.user.id });
+  await Job.deleteOne({ _id: job._id, userId: ownerId });
 
   // Decrement customer job count
   if (job.customerId) {
     await Customer.updateOne(
-      { _id: job.customerId, userId: session.user.id },
+      { _id: job.customerId, userId: ownerId },
       { $inc: { jobCount: -1 }, $set: { updatedAt: new Date() } },
     );
   }
@@ -95,15 +126,14 @@ export async function PATCH(
   { params }: { params: { jobId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'write', 'job');
+  if (!perm.ok) return perm.response;
 
   if (!Types.ObjectId.isValid(params.jobId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const gate = await requireCapability(session.user.id, 'canCreateJobs');
+  const gate = await requireCapability(session!.user.id, 'canCreateJobs');
   if (!gate.ok) return gate.response;
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
@@ -116,11 +146,20 @@ export async function PATCH(
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   // Load the job as a Mongoose document so pre('save') hook runs
-  const job = await Job.findOne({ _id: params.jobId, userId: session.user.id });
+  const job = await Job.findOne({ _id: params.jobId, userId: ownerId });
   if (!job) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // 'own' scope: member may only edit jobs they're assigned to
+  if (perm.scope === 'own') {
+    const mid = memberId(session!);
+    if (!mid || !job.assignedMemberIds.some((id) => String(id) === mid)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
   }
 
   // ── Invoice guard: block editing paid jobs ──────────────────────────
@@ -128,7 +167,7 @@ export async function PATCH(
   if (job.invoiceId) {
     existingInvoice = await Invoice.findOne({
       _id: job.invoiceId,
-      userId: session.user.id,
+      userId: ownerId,
     }).lean<(IInvoice & { _id: Types.ObjectId }) | null>();
 
     if (existingInvoice?.status === 'paid') {
@@ -147,13 +186,13 @@ export async function PATCH(
     if (!Types.ObjectId.isValid(newCustomerId)) {
       newCustomerId = null;
     } else {
-      const owned = await Customer.exists({ _id: newCustomerId, userId: session.user.id });
+      const owned = await Customer.exists({ _id: newCustomerId, userId: ownerId });
       if (!owned) newCustomerId = null;
     }
   }
 
   if (!newCustomerId) {
-    const resolved = await findOrCreateCustomer(session.user.id, {
+    const resolved = await findOrCreateCustomer(ownerId, {
       customerName: body.customerName as string | undefined,
       customerPhone: body.customerPhone as string | undefined,
       customerAddress: body.customerAddress as string | undefined,
@@ -166,13 +205,13 @@ export async function PATCH(
   if (oldCustomerId !== newCustomerId) {
     if (oldCustomerId) {
       await Customer.updateOne(
-        { _id: oldCustomerId, userId: session.user.id },
+        { _id: oldCustomerId, userId: ownerId },
         { $inc: { jobCount: -1 }, $set: { updatedAt: new Date() } },
       );
     }
     if (newCustomerId) {
       await Customer.updateOne(
-        { _id: newCustomerId, userId: session.user.id },
+        { _id: newCustomerId, userId: ownerId },
         { $inc: { jobCount: 1 }, $set: { updatedAt: new Date() } },
       );
     }
@@ -205,6 +244,14 @@ export async function PATCH(
   job.voiceTranscript = (body.voiceTranscript as string | null) ?? job.voiceTranscript;
   if (body.aiParsed === true) job.aiParsed = true;
 
+  // ── Assigned members — only update when the field is present in body ─
+  if ('assignedMemberIds' in body) {
+    job.assignedMemberIds = await validateAssignedMemberIds(
+      body.assignedMemberIds,
+      ownerId,
+    );
+  }
+
   // Status: allow draft→complete transition; otherwise preserve existing
   const requestedStatus = body.status as string | undefined;
   if (requestedStatus === 'complete' && job.status === 'draft') {
@@ -235,7 +282,7 @@ export async function PATCH(
       await Invoice.deleteOne({ _id: existingInvoice._id });
       const resetJobStatus = job.status === 'invoiced' ? 'complete' : job.status;
       await Job.updateOne(
-        { _id: job._id, userId: session.user.id },
+        { _id: job._id, userId: ownerId },
         { $set: { invoiceId: null, invoiceNumber: null, status: resetJobStatus, updatedAt: new Date() } },
       );
       invoiceAction = 'reset';
@@ -249,7 +296,7 @@ export async function PATCH(
         customerEmail = cust?.email ?? customerEmail;
       }
       await Invoice.updateOne(
-        { _id: existingInvoice._id, userId: session.user.id },
+        { _id: existingInvoice._id, userId: ownerId },
         {
           $set: {
             customerName: job.customerName,

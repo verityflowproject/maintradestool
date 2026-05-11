@@ -3,6 +3,8 @@ import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import { listInvoices } from '@/lib/invoices/listInvoices';
 import type { InvoiceStatusFilter } from '@/lib/invoices/listInvoices';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
@@ -10,9 +12,8 @@ const VALID: InvoiceStatusFilter[] = ['all', 'draft', 'sent', 'paid', 'overdue']
 
 export async function GET(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'invoice');
+  if (!perm.ok) return perm.response;
 
   const { searchParams } = new URL(req.url);
   const rawStatus = searchParams.get('status') ?? 'all';
@@ -22,6 +23,6 @@ export async function GET(req: Request) {
 
   await dbConnect();
 
-  const result = await listInvoices(session.user.id, statusFilter);
+  const result = await listInvoices(effectiveOwnerId(session!), statusFilter);
   return NextResponse.json(result);
 }

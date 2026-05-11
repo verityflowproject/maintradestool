@@ -119,16 +119,19 @@ export async function POST(
 
   await dbConnect();
 
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  const ownerId = effectiveOwnerId(session);
+
   const invoice = await Invoice.findOne({
     _id: params.invoiceId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean<(IInvoice & { _id: Types.ObjectId }) | null>();
 
   if (!invoice) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const user = await User.findById(session.user.id)
+  const user = await User.findById(ownerId)
     .select('businessName region')
     .lean<{ businessName: string; region: string } | null>();
 
@@ -140,7 +143,7 @@ export async function POST(
 
   // Mark reminderSentAt regardless of method
   await Invoice.updateOne(
-    { _id: invoice._id, userId: session.user.id },
+    { _id: invoice._id, userId: ownerId },
     { $set: { reminderSentAt: new Date() } },
   );
 

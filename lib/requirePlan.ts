@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Types } from 'mongoose';
 import { dbConnect } from './mongodb';
 import User from './models/User';
 import { getPlanState } from './planState';
@@ -13,16 +14,37 @@ type GateResult =
   | { ok: true }
   | { ok: false; response: NextResponse };
 
+/**
+ * Gate a capability against the user's (or their parent owner's) plan state.
+ *
+ * By default (opts.resolveOwner !== false) if the userId belongs to an invited
+ * team member, the lookup is transparently redirected to the parent owner's
+ * record. This means members inherit the owner's Pro/trial/expired state —
+ * they never have their own subscription.
+ */
 export async function requireCapability(
   userId: string,
   cap: Capability,
+  opts?: { resolveOwner?: boolean },
 ): Promise<GateResult> {
   await dbConnect();
 
-  const user = await User.findById(userId)
+  let lookupId = userId;
+
+  // Resolve to parent owner so members inherit the owner's plan
+  if (opts?.resolveOwner !== false) {
+    const u = await User.findById(userId)
+      .select('parentOwnerId')
+      .lean<{ parentOwnerId: Types.ObjectId | null } | null>();
+    if (u?.parentOwnerId) {
+      lookupId = String(u.parentOwnerId);
+    }
+  }
+
+  const user = await User.findById(lookupId)
     .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince createdAt')
     .lean<{
-      plan: 'trial' | 'pro' | 'cancelled';
+      plan: 'trial' | 'pro' | 'cancelled' | 'expired';
       trialEndsAt: Date;
       subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | null;
       subscriptionEndsAt: Date | null;

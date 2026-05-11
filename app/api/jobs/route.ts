@@ -5,10 +5,14 @@ import { dbConnect } from '@/lib/mongodb';
 import Customer from '@/lib/models/Customer';
 import Job from '@/lib/models/Job';
 import User from '@/lib/models/User';
+import TeamMember from '@/lib/models/TeamMember';
 import { findOrCreateCustomer } from '@/lib/utils/findOrCreateCustomer';
 import { requireCapability } from '@/lib/requirePlan';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { firstJobTemplate } from '@/lib/email/templates';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId, memberId } from '@/lib/auth/scope';
+import { jobReadFilter } from '@/lib/auth/jobScope';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +23,26 @@ interface PartBody {
   markup?: number | string;
 }
 
+// ── Helper: validate + ownership-check assignedMemberIds ────────────────
+
+async function validateAssignedMemberIds(
+  rawIds: unknown,
+  ownerUserId: string,
+): Promise<Types.ObjectId[]> {
+  if (!Array.isArray(rawIds) || rawIds.length === 0) return [];
+  const validStrings = (rawIds as unknown[])
+    .map((id) => String(id))
+    .filter((id) => Types.ObjectId.isValid(id));
+  if (validStrings.length === 0) return [];
+  const owned = await TeamMember.find({
+    _id: { $in: validStrings },
+    ownerUserId,
+  })
+    .select('_id')
+    .lean<{ _id: Types.ObjectId }[]>();
+  return owned.map((m) => m._id);
+}
+
 // ── GET /api/jobs ───────────────────────────────────────────────────────
 
 const VALID_STATUSES = ['draft', 'complete', 'invoiced', 'paid'] as const;
@@ -26,30 +50,41 @@ type JobStatus = (typeof VALID_STATUSES)[number];
 
 export async function GET(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'job');
+  if (!perm.ok) return perm.response;
 
   const { searchParams } = new URL(req.url);
   const statusParam = searchParams.get('status') ?? 'all';
   const limitParam = Math.min(Number(searchParams.get('limit') ?? '50') || 50, 200);
+  const assignedToParam = searchParams.get('assignedTo');
 
-  const filter: Record<string, unknown> = { userId: session.user.id };
+  // Build base filter using role-aware scope (handles owner vs member data isolation)
+  const filter: Record<string, unknown> = jobReadFilter(session!, perm.scope);
+
   if (statusParam !== 'all' && (VALID_STATUSES as readonly string[]).includes(statusParam)) {
     filter.status = statusParam as JobStatus;
+  }
+  // Only allow assignedTo filter for owner/manager (all-scope); members are already scoped to own
+  if (assignedToParam && perm.scope === 'all') {
+    if (assignedToParam === 'none') {
+      filter.assignedMemberIds = { $size: 0 };
+    } else if (Types.ObjectId.isValid(assignedToParam)) {
+      filter.assignedMemberIds = new Types.ObjectId(assignedToParam);
+    }
   }
 
   await dbConnect();
 
+  const ownerId = effectiveOwnerId(session!);
   const [rows, totalCount] = await Promise.all([
     Job.find(filter)
       .sort({ createdAt: -1 })
       .limit(limitParam)
       .select(
-        '_id title status customerName customerAddress total laborHours createdAt aiParsed invoiceNumber invoiceId',
+        '_id title status customerName customerAddress total laborHours createdAt aiParsed invoiceNumber invoiceId assignedMemberIds',
       )
       .lean<Record<string, unknown>[]>(),
-    Job.countDocuments({ userId: session.user.id }),
+    Job.countDocuments({ userId: ownerId }),
   ]);
 
   const jobs = rows.map((j) => ({ ...j, _id: String(j._id) }));
@@ -60,11 +95,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'write', 'job');
+  if (!perm.ok) return perm.response;
 
-  const gate = await requireCapability(session.user.id, 'canCreateJobs');
+  const gate = await requireCapability(session!.user.id, 'canCreateJobs');
   if (!gate.ok) return gate.response;
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
@@ -77,6 +111,8 @@ export async function POST(req: Request) {
 
   // ── Resolve customer ──────────────────────────────────────────────
 
+  const ownerId = effectiveOwnerId(session!);
+
   let customerId: string | null = (body.customerId as string | null) ?? null;
 
   if (customerId) {
@@ -84,13 +120,13 @@ export async function POST(req: Request) {
     if (!Types.ObjectId.isValid(customerId)) {
       customerId = null;
     } else {
-      const owned = await Customer.exists({ _id: customerId, userId: session.user.id });
+      const owned = await Customer.exists({ _id: customerId, userId: ownerId });
       if (!owned) customerId = null;
     }
   }
 
   if (!customerId) {
-    const resolved = await findOrCreateCustomer(session.user.id, {
+    const resolved = await findOrCreateCustomer(ownerId, {
       customerName: body.customerName as string | undefined,
       customerPhone: body.customerPhone as string | undefined,
       customerAddress: body.customerAddress as string | undefined,
@@ -99,11 +135,22 @@ export async function POST(req: Request) {
     customerId = resolved?.customerId ?? null;
   }
 
+  // ── Validate assigned members ─────────────────────────────────────
+
+  let rawAssignedIds = body.assignedMemberIds;
+  // 'own' scope: member creates job assigned to themselves
+  if (perm.scope === 'own') {
+    const mid = memberId(session!);
+    rawAssignedIds = mid ? [mid] : [];
+  }
+
+  const assignedMemberIds = await validateAssignedMemberIds(rawAssignedIds, ownerId);
+
   // ── Create job ────────────────────────────────────────────────────
 
   try {
     const job = await Job.create({
-      userId: session.user.id,
+      userId: ownerId,
       customerId: customerId || null,
       customerName: (body.customerName as string) ?? '',
       customerPhone: (body.customerPhone as string) ?? '',
@@ -129,20 +176,21 @@ export async function POST(req: Request) {
       aiParsed: Boolean(body.aiParsed),
       voiceTranscript: (body.voiceTranscript as string | null) ?? null,
       internalNotes: (body.internalNotes as string) ?? '',
+      assignedMemberIds,
     });
 
     // Increment customer job count
     if (customerId) {
       await Customer.updateOne(
-        { _id: customerId, userId: session.user.id },
+        { _id: customerId, userId: ownerId },
         { $inc: { jobCount: 1 }, $set: { updatedAt: new Date() } },
       );
     }
 
-    // First job email
-    const jobCount = await Job.countDocuments({ userId: session.user.id });
+    // First job email — send to the owner (not the member)
+    const jobCount = await Job.countDocuments({ userId: ownerId });
     if (jobCount === 1) {
-      const user = await User.findById(session.user.id).lean();
+      const user = await User.findById(ownerId).lean();
       if (user) {
         sendEmail({ to: user.email, ...firstJobTemplate(user, String(job._id)) }).catch(console.error);
       }

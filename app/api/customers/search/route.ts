@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Customer from '@/lib/models/Customer';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'customer');
+  if (!perm.ok) return perm.response;
 
   const q = (new URL(req.url).searchParams.get('q') ?? '').trim();
   if (q.length < 1) {
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
   const rx = new RegExp(escaped, 'i');
 
   const rows = await Customer.find({
-    userId: session.user.id,
+    userId: effectiveOwnerId(session!),
     $or: [
       { firstName: rx },
       { lastName: rx },

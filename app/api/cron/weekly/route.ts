@@ -87,7 +87,8 @@ export async function GET(req: NextRequest) {
   await dbConnect();
   const since = new Date(Date.now() - 7 * 86_400_000);
 
-  const users = await User.find({ 'notifications.weeklyReport': true }).lean();
+  // Skip members — weekly reports are owner-level, not member-level
+  const users = await User.find({ 'notifications.weeklyReport': true, parentOwnerId: null }).lean();
 
   let sent = 0;
   let skipped = 0;

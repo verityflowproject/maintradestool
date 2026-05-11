@@ -714,7 +714,99 @@ export function contactAdminNotificationTemplate(
         ${rows}
       </table>
     `,
-    ctaText: 'Open in admin',
+      ctaText: 'Open in admin',
     ctaUrl: `${APP_URL}/admin/feedback/${submissionId}`,
+  };
+}
+
+export function teamInviteTemplate(
+  owner: Pick<IUser, 'firstName' | 'businessName'>,
+  memberName: string,
+): TemplateResult {
+  return {
+    subject: `${owner.firstName} added you to ${owner.businessName} on VerityFlow`,
+    preheader: "You're on the team. Here's what happens next.",
+    heading: `Welcome to the ${owner.businessName} team`,
+    body: `
+      <p>Hi ${memberName},</p>
+      <p>${owner.firstName} added you to their team on VerityFlow — the job logging and invoicing tool ${owner.businessName} uses.</p>
+      <p>${owner.firstName} will assign jobs to you and you'll be able to see your assignments here soon. We'll email you again when your own login is ready.</p>
+      <p>Until then, no action is needed.</p>
+    `,
+    ctaText: 'Learn about VerityFlow',
+    ctaUrl: `${APP_URL}`,
+  };
+}
+
+export function teamInviteAcceptTemplate(
+  owner: Pick<IUser, 'firstName' | 'businessName'>,
+  memberName: string,
+  token: string,
+  memberId: string,
+): TemplateResult {
+  return {
+    subject: `${owner.firstName} invited you to join ${owner.businessName} on VerityFlow`,
+    preheader: 'Set up your account — this link expires in 7 days.',
+    heading: `You're invited to ${owner.businessName}`,
+    body: `
+      <p>Hi ${memberName},</p>
+      <p>${owner.firstName} has added you to the <strong>${owner.businessName}</strong> team on VerityFlow.</p>
+      <p>Click the button below to set up your login. You'll be able to view and manage the jobs assigned to you.</p>
+      <p style="color:#6b7280;font-size:13px;">This invite link expires in 7 days. If you didn't expect this, you can ignore this email.</p>
+    `,
+    ctaText: 'Set up my account',
+    ctaUrl: `${APP_URL}/team/accept/${token}?memberId=${memberId}`,
+  };
+}
+
+export function inviteAcceptedNotificationTemplate(
+  owner: Pick<IUser, 'firstName' | 'businessName'>,
+  memberName: string,
+): TemplateResult {
+  return {
+    subject: `${memberName} joined your VerityFlow team`,
+    preheader: `${memberName} accepted your invite and is now on the team.`,
+    heading: `${memberName} joined the team`,
+    body: `
+      <p>Hi ${owner.firstName},</p>
+      <p><strong>${memberName}</strong> accepted your invite and has set up their login for <strong>${owner.businessName}</strong> on VerityFlow.</p>
+      <p>They can now sign in and see the jobs you assign to them.</p>
+    `,
+    ctaText: 'View your team',
+    ctaUrl: `${APP_URL}/team`,
+  };
+}
+
+export function ownerAccountClosedTemplate(
+  owner: Pick<IUser, 'firstName' | 'businessName'>,
+  memberName: string,
+): TemplateResult {
+  return {
+    subject: `${owner.businessName} has closed their VerityFlow account`,
+    preheader: 'Your team access has ended — you can start your own account.',
+    heading: `${owner.businessName} closed their account`,
+    body: `
+      <p>Hi ${memberName},</p>
+      <p><strong>${owner.businessName}</strong> has closed their VerityFlow account, so your team access has ended.</p>
+      <p>If you'd like to keep using VerityFlow, you can start your own account on the next sign-in — there's a button on the access-revoked page that will get you set up.</p>
+    `,
+  };
+}
+
+export function memberLeftTemplate(
+  owner: Pick<IUser, 'firstName' | 'businessName'>,
+  memberName: string,
+): TemplateResult {
+  return {
+    subject: `${memberName} left your VerityFlow team`,
+    preheader: `${memberName} has removed themselves from ${owner.businessName}.`,
+    heading: `${memberName} left the team`,
+    body: `
+      <p>Hi ${owner.firstName},</p>
+      <p><strong>${memberName}</strong> has left the <strong>${owner.businessName}</strong> team on VerityFlow.</p>
+      <p>Their account has been unlinked. Any jobs they were assigned to remain in your account.</p>
+    `,
+    ctaText: 'View your team',
+    ctaUrl: `${APP_URL}/team`,
   };
 }

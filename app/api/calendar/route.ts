@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
+import { requirePerm } from '@/lib/auth/permissions';
+import { jobReadFilter } from '@/lib/auth/jobScope';
 
 export const runtime = 'nodejs';
 
@@ -22,9 +24,8 @@ function serializeJob(doc: Record<string, unknown>) {
 
 export async function GET(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'job');
+  if (!perm.ok) return perm.response;
 
   const { searchParams } = new URL(req.url);
   const now = new Date();
@@ -37,16 +38,18 @@ export async function GET(req: Request) {
 
   await dbConnect();
 
+  const baseFilter = jobReadFilter(session!, perm.scope);
+
   const [rows, unscheduledRows] = await Promise.all([
     Job.find({
-      userId: session.user.id,
+      ...baseFilter,
       scheduledDate: { $gte: startOfMonth, $lt: endOfMonth },
     })
       .select('_id title customerName scheduledDate scheduledStart scheduledEnd status total')
       .lean<Record<string, unknown>[]>(),
 
     Job.find({
-      userId: session.user.id,
+      ...baseFilter,
       status: 'complete',
       $or: [{ scheduledDate: null }, { scheduledDate: { $exists: false } }],
     })

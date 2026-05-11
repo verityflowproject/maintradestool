@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,6 +15,7 @@ import {
   Receipt,
   Link as LinkIcon,
   Bell,
+  Users,
   CreditCard,
   FileText,
   HelpCircle,
@@ -23,8 +24,10 @@ import {
   LogOut,
   Trash2,
   ShieldCheck,
+  ClipboardList,
 } from 'lucide-react';
 import type { PlanState } from '@/lib/planState';
+import type { TeamMemberRole } from '@/lib/team/roles';
 import AdminUnlockModal from '@/components/AdminUnlockModal';
 
 interface Props {
@@ -33,6 +36,10 @@ interface Props {
   planState: PlanState;
   trialEndsAt: string | null;
   hasPassword: boolean;
+  hasTeam: boolean;
+  role: TeamMemberRole | 'owner';
+  ownerBusinessName: string | null;
+  isMember: boolean;
 }
 
 function getTrialDaysLeft(trialEndsAt: string | null): number {
@@ -128,11 +135,34 @@ export default function SettingsHubClient({
   planState,
   trialEndsAt,
   hasPassword,
+  hasTeam,
+  role,
+  ownerBusinessName,
+  isMember,
 }: Props) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [leaveTeamOpen, setLeaveTeamOpen] = useState(false);
+  const [leavingTeam, setLeavingTeam] = useState(false);
 
   const initials = firstName ? firstName.slice(0, 2).toUpperCase() : '?';
+
+  // Role-based visibility helpers
+  const isOwner = role === 'owner';
+  const isManager = role === 'manager';
+  const isOffice = role === 'office';
+  const showInvoiceDefaults = isOwner || isManager || isOffice;
+  const showTeamLink = hasTeam && role !== 'apprentice';
+  // Team link visible to non-apprentice members (they can read the team roster)
+  const showBilling = isOwner;
+  const showBusinessInfo = isOwner;
+  const showRates = isOwner;
+  const showBooking = isOwner;
+
+  const accountHeading = isMember && ownerBusinessName
+    ? `MY ACCOUNT · Member of ${ownerBusinessName}`
+    : 'ACCOUNT';
 
   return (
     <div className="settings-page page-padding">
@@ -155,15 +185,22 @@ export default function SettingsHubClient({
         <div className="settings-avatar">{initials}</div>
         <div className="settings-profile-info">
           <p className="settings-profile-name">{firstName}</p>
-          <p className="settings-profile-biz">{businessName}</p>
+          <p className="settings-profile-biz">
+            {isMember && ownerBusinessName
+              ? `Member of ${ownerBusinessName}`
+              : businessName}
+          </p>
         </div>
-        <PlanBadge planState={planState} trialEndsAt={trialEndsAt} />
+        {/* Members inherit owner's plan — don't show the trial badge for them */}
+        {!isMember && <PlanBadge planState={planState} trialEndsAt={trialEndsAt} />}
       </div>
 
       {/* Section 1 — Account */}
-      <Section heading="ACCOUNT">
+      <Section heading={accountHeading}>
         <NavRow icon={<User size={18} />} label="Profile" href="/settings/profile" />
-        <NavRow icon={<Building size={18} />} label="Business Info" href="/settings/business" />
+        {showBusinessInfo && (
+          <NavRow icon={<Building size={18} />} label="Business Info" href="/settings/business" />
+        )}
         {hasPassword && (
           <NavRow icon={<Lock size={18} />} label="Change Password" href="/settings/password" />
         )}
@@ -172,17 +209,37 @@ export default function SettingsHubClient({
 
       {/* Section 2 — Work */}
       <Section heading="WORK">
-        <NavRow icon={<DollarSign size={18} />} label="Rates & Pricing" href="/settings/rates" />
-        <NavRow icon={<Receipt size={18} />} label="Invoice Defaults" href="/settings/invoices" />
-        <NavRow icon={<LinkIcon size={18} />} label="Booking Page" href="/settings/booking" />
+        {showRates && (
+          <NavRow icon={<DollarSign size={18} />} label="Rates & Pricing" href="/settings/rates" />
+        )}
+        {showInvoiceDefaults && (
+          <NavRow icon={<Receipt size={18} />} label="Invoice Defaults" href="/settings/invoices" />
+        )}
+        {showBooking && (
+          <NavRow icon={<LinkIcon size={18} />} label="Booking Page" href="/settings/booking" />
+        )}
         <NavRow icon={<Bell size={18} />} label="Notifications" href="/settings/notifications" />
+        {showTeamLink && (
+          <NavRow icon={<Users size={18} />} label="Team" href="/settings/team" />
+        )}
+        {/* Payroll report — owner and manager only */}
+        {(isOwner || isManager) && (
+          <NavRow
+            icon={<ClipboardList size={18} />}
+            label="Payroll Report"
+            sublabel="Hours and earnings by member"
+            href="/settings/team/payroll"
+          />
+        )}
       </Section>
 
-      {/* Section 3 — Billing */}
-      <Section heading="BILLING">
-        <NavRow icon={<CreditCard size={18} />} label="Subscription" href="/settings/billing" />
-        <NavRow icon={<FileText size={18} />} label="Billing History" href="/settings/billing/history" />
-      </Section>
+      {/* Section 3 — Billing (owner only) */}
+      {showBilling && (
+        <Section heading="BILLING">
+          <NavRow icon={<CreditCard size={18} />} label="Subscription" href="/settings/billing" />
+          <NavRow icon={<FileText size={18} />} label="Billing History" href="/settings/billing/history" />
+        </Section>
+      )}
 
       {/* Section 4 — Support */}
       <Section heading="SUPPORT">
@@ -205,15 +262,17 @@ export default function SettingsHubClient({
         <NavRow icon={<FileText size={18} />} label="Terms & Privacy" href="/legal" />
       </Section>
 
-      {/* Section 5 — Admin */}
-      <Section>
-        <NavRow
-          icon={<ShieldCheck size={18} />}
-          label="Are you an admin?"
-          onClick={() => setAdminModalOpen(true)}
-          accent
-        />
-      </Section>
+      {/* Section 5 — Admin (owner only) */}
+      {isOwner && (
+        <Section>
+          <NavRow
+            icon={<ShieldCheck size={18} />}
+            label="Are you an admin?"
+            onClick={() => setAdminModalOpen(true)}
+            accent
+          />
+        </Section>
+      )}
 
       {/* Section 6 — Danger zone */}
       <Section>
@@ -222,15 +281,80 @@ export default function SettingsHubClient({
           label="Sign Out"
           onClick={() => void signOut({ callbackUrl: '/onboarding' })}
         />
-        <NavRow
-          icon={<Trash2 size={18} />}
-          label="Delete Account"
-          href="/settings/delete"
-          danger
-        />
+        {isOwner ? (
+          <NavRow
+            icon={<Trash2 size={18} />}
+            label="Delete Account"
+            href="/settings/delete"
+            danger
+          />
+        ) : (
+          <NavRow
+            icon={<LogOut size={18} />}
+            label="Leave Team"
+            onClick={() => setLeaveTeamOpen(true)}
+            danger
+          />
+        )}
       </Section>
 
-      <AdminUnlockModal open={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
+      {isOwner && (
+        <AdminUnlockModal open={adminModalOpen} onClose={() => setAdminModalOpen(false)} />
+      )}
+
+      {/* Leave Team confirmation modal */}
+      {leaveTeamOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000,
+        }}>
+          <div className="glass-card" style={{
+            width: '100%', maxWidth: 480,
+            padding: '24px 20px 40px',
+            borderRadius: '16px 16px 0 0',
+          }}>
+            <h3 style={{ margin: '0 0 10px', fontSize: 17, fontWeight: 700 }}>
+              Leave {ownerBusinessName ?? 'this team'}?
+            </h3>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 20px', lineHeight: 1.6 }}>
+              {"You won't be able to see their jobs or customers anymore. You'll be redirected to set up your own VerityFlow account."}
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn-ghost"
+                style={{ flex: 1, padding: '11px' }}
+                onClick={() => setLeaveTeamOpen(false)}
+                disabled={leavingTeam}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-danger"
+                style={{ flex: 1, padding: '11px', fontSize: 14, fontWeight: 600 }}
+                disabled={leavingTeam}
+                onClick={() => {
+                  setLeavingTeam(true);
+                  fetch('/api/team/leave', { method: 'POST' })
+                    .then(async (res) => {
+                      if (res.ok) {
+                        await updateSession();
+                        router.push('/onboarding');
+                      } else {
+                        setLeavingTeam(false);
+                        setLeaveTeamOpen(false);
+                      }
+                    })
+                    .catch(() => {
+                      setLeavingTeam(false);
+                    });
+                }}
+              >
+                {leavingTeam ? 'Leaving…' : 'Leave Team'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

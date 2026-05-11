@@ -27,6 +27,7 @@ interface FormState {
   laborRate: number | '';
   parts: JobPart[];
   taxRate: number | '';
+  assignedMemberIds: string[];
 }
 
 interface JobValues {
@@ -46,6 +47,7 @@ interface JobValues {
   taxRate: number | '';
   internalNotes: string;
   status: string;
+  assignedMemberIds: string[];
 }
 
 interface ParsedJobRaw {
@@ -80,6 +82,7 @@ interface Props {
   defaultRate: number;
   defaultMarkup: number;
   fromVoice?: boolean;
+  hasTeam?: boolean;
 }
 
 function safeJobType(v: string | null | undefined): 'residential' | 'commercial' | 'other' {
@@ -98,7 +101,7 @@ function toISODateString(val: string | null | undefined): string {
   }
 }
 
-export default function EditClient({ jobId, jobValues, defaultRate, defaultMarkup, fromVoice = false }: Props) {
+export default function EditClient({ jobId, jobValues, defaultRate, defaultMarkup, fromVoice = false, hasTeam = false }: Props) {
   const [ready, setReady] = useState(false);
   const [initialValues, setInitialValues] = useState<Partial<FormState>>({});
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -123,6 +126,7 @@ export default function EditClient({ jobId, jobValues, defaultRate, defaultMarku
       laborRate: jobValues.laborRate,
       parts: jobValues.parts,
       taxRate: jobValues.taxRate,
+      assignedMemberIds: jobValues.assignedMemberIds,
     };
 
     if (fromVoice) {
@@ -194,6 +198,7 @@ export default function EditClient({ jobId, jobValues, defaultRate, defaultMarku
       internalNotes={mergedInternalNotes ?? jobValues.internalNotes}
       pageTitle="Edit Job"
       backHref={`/jobs/${jobId}`}
+      initialAssignedMemberIds={jobValues.assignedMemberIds}
     />
   );
 }

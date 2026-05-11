@@ -21,9 +21,10 @@ export async function GET(
 
   await dbConnect();
 
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
   const invoice = await Invoice.findOne({
     jobId: params.jobId,
-    userId: session.user.id,
+    userId: effectiveOwnerId(session),
   }).lean();
 
   if (!invoice) {

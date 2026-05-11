@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ChevronLeft } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
 import { TRADES, TEAM_SIZES, EXPERIENCE_YEARS } from '@/lib/constants';
@@ -21,6 +22,7 @@ export default function ProfileSettingsClient({
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const { update: updateSession } = useSession();
 
   const [firstName, setFirstName] = useState(initialFirstName);
   const [teamSize, setTeamSize] = useState(initialTeamSize);
@@ -42,6 +44,8 @@ export default function ProfileSettingsClient({
         body: JSON.stringify({ firstName: firstName.trim(), teamSize, experienceYears }),
       });
       if (res.ok) {
+        // Refresh JWT so teamSize + hasTeam are immediately reflected in the session
+        await updateSession();
         toast.success('Profile updated.');
       } else {
         const data = (await res.json()) as { error?: string };
@@ -52,7 +56,7 @@ export default function ProfileSettingsClient({
     } finally {
       setSaving(false);
     }
-  }, [firstName, teamSize, experienceYears, toast]);
+  }, [firstName, teamSize, experienceYears, toast, updateSession]);
 
   return (
     <div className="settings-page page-padding">

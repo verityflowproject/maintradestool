@@ -5,6 +5,11 @@ import { ChevronLeft, Link as LinkIcon, Mic, Pencil } from 'lucide-react';
 import { Types } from 'mongoose';
 import { dbConnect } from '@/lib/mongodb';
 import Job, { type IJob } from '@/lib/models/Job';
+import TeamMember from '@/lib/models/TeamMember';
+import TimeEntry from '@/lib/models/TimeEntry';
+import User from '@/lib/models/User';
+import { isTeamSize } from '@/lib/team/hasTeam';
+import JobTimeSectionClient from './JobTimeSectionClient';
 
 function fmt(n: number): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -24,16 +29,95 @@ export default async function JobDetailPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
 
   if (!Types.ObjectId.isValid(params.jobId)) notFound();
 
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId, memberId: getMId } = await import('@/lib/auth/scope');
+
+  const perm = requirePerm(session, 'read', 'job');
+  if (!perm.ok) redirect('/dashboard');
+
   await dbConnect();
-  const job = await Job.findOne({
-    _id: params.jobId,
-    userId: session.user.id,
-  }).lean<IJob | null>();
+
+  const ownerId = getEOId(session);
+
+  const [job, userDoc] = await Promise.all([
+    Job.findOne({
+      _id: params.jobId,
+      userId: ownerId,
+    }).lean<IJob | null>(),
+    User.findById(ownerId).select('teamSize').lean<{ teamSize?: string } | null>(),
+  ]);
 
   if (!job) notFound();
+
+  // own-scope: member must be assigned to this job
+  if (perm.scope === 'own') {
+    const mid = getMId(session);
+    const assignedIds = (job.assignedMemberIds ?? []).map(String);
+    if (!mid || !assignedIds.includes(mid)) notFound();
+  }
+
+  const hasTeam = isTeamSize(userDoc?.teamSize);
+  const assignedMembers =
+    hasTeam && (job.assignedMemberIds ?? []).length > 0
+      ? await TeamMember.find({
+          _id: { $in: job.assignedMemberIds },
+          ownerUserId: ownerId,
+        })
+          .select('_id name color avatarInitials role')
+          .lean<{ _id: Types.ObjectId; name: string; color: string; avatarInitials: string; role: string }[]>()
+      : [];
+
+  // Fetch time entries for this job
+  const rawTimeEntries = await TimeEntry.find({
+    ownerUserId: ownerId,
+    jobId: job._id,
+  })
+    .populate('teamMemberId', 'name color avatarInitials')
+    .sort({ startedAt: -1 })
+    .lean<{
+      _id: Types.ObjectId;
+      teamMemberId: { _id: Types.ObjectId; name: string; color: string; avatarInitials: string } | Types.ObjectId;
+      startedAt: Date;
+      endedAt: Date | null;
+      durationMinutes: number;
+    }[]>();
+
+  // For own-scope: filter to this member's entries only
+  const memberObjId = perm.scope === 'own'
+    ? (getMId(session) ? new Types.ObjectId(getMId(session)!) : null)
+    : null;
+
+  const filteredTimeEntries = memberObjId
+    ? rawTimeEntries.filter((e) => {
+        const m = e.teamMemberId;
+        const mid = typeof m === 'object' && '_id' in m ? String(m._id) : String(m);
+        return mid === String(memberObjId);
+      })
+    : rawTimeEntries;
+
+  const timeEntries = filteredTimeEntries.map((e) => {
+    const m = e.teamMemberId as { _id: Types.ObjectId; name: string; color: string; avatarInitials: string } | Types.ObjectId;
+    const memberData = typeof m === 'object' && 'name' in m
+      ? { name: (m as { name: string }).name, color: (m as { color: string }).color, initials: (m as { avatarInitials: string }).avatarInitials }
+      : { name: 'Unknown', color: '#888', initials: '??' };
+    return {
+      _id: String(e._id),
+      memberName: memberData.name,
+      memberColor: memberData.color,
+      memberInitials: memberData.initials,
+      startedAt: e.startedAt.toISOString(),
+      endedAt: e.endedAt ? e.endedAt.toISOString() : null,
+      durationMinutes: e.durationMinutes,
+    };
+  });
+
+  const canApplyLabor = perm.scope === 'all';
 
   const jobId = params.jobId;
   const status = job.status ?? 'draft';
@@ -95,6 +179,62 @@ export default async function JobDetailPage({
           </Link>
         </div>
       )}
+
+      {/* ── Assigned team members ── */}
+      {assignedMembers.length > 0 && (
+        <section className="job-form-section">
+          <p className="section-label">Assigned to</p>
+          <div className="glass-card" style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {assignedMembers.map((m) => (
+              <Link
+                key={String(m._id)}
+                href={`/team/${String(m._id)}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '4px 10px',
+                    borderRadius: 20,
+                    border: `1.5px solid ${m.color}`,
+                    background: `${m.color}22`,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: m.color,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: m.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: '#fff',
+                    }}
+                  >
+                    {m.avatarInitials}
+                  </span>
+                  {m.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Time logged ── */}
+      <JobTimeSectionClient
+        jobId={jobId}
+        entries={timeEntries}
+        canApplyLabor={canApplyLabor}
+      />
 
       {/* ── Customer ── */}
       {(job.customerName || job.customerPhone || job.customerAddress) && (

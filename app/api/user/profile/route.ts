@@ -27,6 +27,10 @@ const SCALAR_FIELDS = [
   'onboardingCompleted',
 ] as const;
 
+// Fields members are allowed to update on their own profile.
+// All other SCALAR_FIELDS are silently dropped for members.
+const MEMBER_ALLOWED_FIELDS = new Set<string>(['firstName', 'phone']);
+
 export async function GET(req: Request) {
   void req;
   const session = await auth();
@@ -99,9 +103,15 @@ export async function PATCH(req: Request) {
     }
   }
 
-  // Apply scalar fields
+  const isMember = session.user.accountType === 'member';
+
+  // Apply scalar fields — members silently drop owner-only fields to keep forms forgiving
   for (const key of SCALAR_FIELDS) {
     if (key in body) {
+      if (isMember && !MEMBER_ALLOWED_FIELDS.has(key)) {
+        // silently drop disallowed field for members
+        continue;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (user as any)[key] = body[key];
     }

@@ -22,6 +22,9 @@ interface UserCtx {
   region: string;
   hourlyRate: number;
   invoiceMethod: 'email' | 'sms' | 'download';
+  teamPreferences?: {
+    requireAssignmentBeforeInvoice: boolean;
+  };
 }
 
 interface ClaudeLineItem {
@@ -152,6 +155,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Only owner/manager/office can generate invoices (tech/lead 403 per matrix)
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const invoicePerm = requirePerm(session, 'write', 'invoice');
+  if (!invoicePerm.ok) return invoicePerm.response;
+
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  const ownerId = effectiveOwnerId(session);
+
   const gate = await requireCapability(session.user.id, 'canGenerateInvoices');
   if (!gate.ok) return gate.response;
 
@@ -166,7 +177,7 @@ export async function POST(req: Request) {
   // ── 3. Ownership-scoped job lookup ──
   const job = await Job.findOne({
     _id: body.jobId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean<(IJob & { _id: Types.ObjectId }) | null>();
 
   if (!job) {
@@ -184,13 +195,27 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── 5. Load user context ──
-  const user = await User.findById(session.user.id)
-    .select('businessName region hourlyRate invoiceMethod')
+  // ── 5. Load user context (always owner's settings) ──
+  const user = await User.findById(ownerId)
+    .select('businessName region hourlyRate invoiceMethod teamPreferences')
     .lean<UserCtx | null>();
 
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // ── 5b. Assignment guard ──
+  if (
+    user.teamPreferences?.requireAssignmentBeforeInvoice &&
+    (job.assignedMemberIds?.length ?? 0) === 0
+  ) {
+    return NextResponse.json(
+      {
+        error: 'assignment_required',
+        message: 'Assign at least one team member before invoicing.',
+      },
+      { status: 400 },
+    );
   }
 
   // ── 6. Resolve customer email (Job doesn't store it; Customer does) ──
@@ -236,7 +261,7 @@ export async function POST(req: Request) {
   }
 
   // ── 8. Assemble invoice document ──
-  const invoiceNumber = await generateInvoiceNumber(session.user.id);
+  const invoiceNumber = await generateInvoiceNumber(ownerId);
   const publicAccessToken = generateInvoiceAccessToken();
   const lineItems = sanitizeLineItems(claudeJson.lineItems);
   const subtotal = +lineItems.reduce((s, li) => s + li.total, 0).toFixed(2);
@@ -251,7 +276,7 @@ export async function POST(req: Request) {
   let invoice;
   try {
     invoice = await Invoice.create({
-      userId: session.user.id,
+      userId: ownerId,
       jobId: job._id,
       customerId: job.customerId ?? null,
       invoiceNumber,
@@ -282,7 +307,7 @@ export async function POST(req: Request) {
   // ── 10. Flip job to invoiced; roll back invoice on failure ──
   try {
     await Job.updateOne(
-      { _id: job._id, userId: session.user.id },
+      { _id: job._id, userId: ownerId },
       {
         $set: {
           status: 'invoiced',

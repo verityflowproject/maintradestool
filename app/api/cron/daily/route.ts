@@ -90,9 +90,11 @@ export async function GET(req: NextRequest) {
 
   // Task 3 — Trial ending warnings + midpoint email
   try {
+    // Skip members — they inherit the owner's plan and don't have their own trial
     const trialUsers = await User.find({
       plan: 'trial',
       trialEndsAt: { $gt: now },
+      parentOwnerId: null,
     });
 
     let warningsSent = 0;
@@ -165,6 +167,7 @@ export async function GET(req: NextRequest) {
     const expiredUsers = await User.find({
       plan: 'trial',
       trialEndsAt: { $lt: now },
+      parentOwnerId: null,
       $or: [{ stripeSubscriptionId: null }, { stripeSubscriptionId: { $exists: false } }],
     });
 
@@ -197,6 +200,7 @@ export async function GET(req: NextRequest) {
       plan: { $in: ['cancelled', 'expired'] },
       subscriptionEndsAt: { $gte: thirtyOneDaysAgo, $lte: thirtyDaysAgo },
       winBackSent: { $ne: true },
+      parentOwnerId: null,
     });
 
     let winBackSent = 0;
@@ -223,6 +227,7 @@ export async function GET(req: NextRequest) {
       subscriptionStatus: 'past_due',
       pastDueSince: { $ne: null },
       pastDueReminder2Sent: { $ne: true },
+      parentOwnerId: null,
     });
 
     let dunningEscalations = 0;
@@ -263,6 +268,7 @@ export async function GET(req: NextRequest) {
         $lte: new Date(now.getTime() - fiveDaysMs),
       },
       earlyBirdEndingEmailSent: { $ne: true },
+      parentOwnerId: null,
       $or: [{ stripeSubscriptionId: null }, { stripeSubscriptionId: { $exists: false } }],
     });
 

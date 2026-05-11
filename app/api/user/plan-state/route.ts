@@ -14,7 +14,12 @@ export async function GET() {
 
   await dbConnect();
 
-  const user = await User.findById(session.user.id)
+  // For members, return the owner's plan state (members inherit the owner's plan)
+  const lookupId = session.user.accountType === 'member' && session.user.parentOwnerId
+    ? session.user.parentOwnerId
+    : session.user.id;
+
+  const user = await User.findById(lookupId)
     .select(
       'plan trialEndsAt subscriptionStatus subscriptionEndsAt subscriptionPlan pastDueSince',
     )

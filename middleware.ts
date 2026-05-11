@@ -8,9 +8,19 @@ import { isAdminUnlockedFromRequest } from '@/lib/admin/adminUnlock';
 // /jobs + /feature-board which are also read-only — write/voice routes inside
 // /jobs are still blocked by the per-page server guards).
 const BILLING_PASSTHROUGH =
-  /^\/(dashboard|jobs|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact|feature-board)(\/|$|\?)/;
+  /^\/(dashboard|jobs|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact|feature-board|team)(\/|$|\?)/;
+
+// Owner-only routes that members should never access
+const OWNER_ONLY_PATHS =
+  /^\/(settings\/billing|settings\/booking|settings\/business|settings\/rates)/;
 
 function isTokenExpired(token: JWT): boolean {
+  // v2: members do not carry their own plan/trial data — their access is gated
+  // on the owner's plan. Per-request guards (requireCapability) resolve to the
+  // parent owner transparently. Returning false here lets members through the
+  // middleware; any expired-owner state is caught at the API/page level.
+  if (token.accountType === 'member') return false;
+
   const status = token.subscriptionStatus;
   const trialEndsAt = token.trialEndsAt;
 
@@ -54,7 +64,7 @@ export async function middleware(req: NextRequest) {
   });
 
   const isProtected =
-    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board)(\/|$|\?)/.test(pathname);
+    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team)(\/|$|\?)/.test(pathname);
   const isOnboarding = pathname === '/onboarding';
   const isAdminRoute =
     pathname === '/admin' ||
@@ -96,6 +106,22 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
+  // v2: team member gates
+  // Members cannot access owner-only pages (billing, booking settings, etc.)
+  if (token?.accountType === 'member' && OWNER_ONLY_PATHS.test(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  // Deactivated members are held at a dedicated screen; the JWT may persist up
+  // to ~30s after deactivation before refresh — middleware catches them on the
+  // very next navigation. The /team-access-revoked page itself is outside the
+  // protected matcher so it renders without token checks.
+  if (token?.accountType === 'member' && token.memberActive === false) {
+    if (pathname !== '/team-access-revoked' && !pathname.startsWith('/api/')) {
+      return NextResponse.redirect(new URL('/team-access-revoked', req.url));
+    }
+  }
+
   // Billing gate — redirect expired users away from write/feature routes.
   // Read-only data pages and settings are intentionally let through so users
   // can still see their data and reach the upgrade page.
@@ -110,7 +136,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board)(.*)?',
+    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team)(.*)?',
     '/onboarding',
     '/admin/:path*',
     '/api/admin/:path*',

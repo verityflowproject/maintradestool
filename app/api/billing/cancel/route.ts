@@ -25,9 +25,9 @@ const FEEDBACK_MAP: Record<string, string> = {
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const perm = requirePerm(session, 'write', 'billing');
+  if (!perm.ok) return perm.response;
 
   let body: CancelBody;
   try {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   }
 
   await dbConnect();
-  const user = await User.findById(session.user.id)
+  const user = await User.findById(session!.user.id)
     .select('stripeSubscriptionId subscriptionStatus subscriptionPlan stripeCustomerId')
     .lean();
 

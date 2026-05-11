@@ -5,6 +5,8 @@ import { dbConnect } from '@/lib/mongodb';
 import Customer from '@/lib/models/Customer';
 import Job from '@/lib/models/Job';
 import { deriveFullName } from '@/lib/utils/customerName';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
@@ -31,18 +33,18 @@ export async function GET(
   { params }: { params: { customerId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'customer');
+  if (!perm.ok) return perm.response;
   if (!Types.ObjectId.isValid(params.customerId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   const raw = await Customer.findOne({
     _id: params.customerId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean<Record<string, unknown> | null>();
 
   if (!raw) {
@@ -60,9 +62,8 @@ export async function PATCH(
   { params }: { params: { customerId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'write', 'customer');
+  if (!perm.ok) return perm.response;
   if (!Types.ObjectId.isValid(params.customerId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
@@ -86,9 +87,10 @@ export async function PATCH(
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   const raw = await Customer.findOneAndUpdate(
-    { _id: params.customerId, userId: session.user.id },
+    { _id: params.customerId, userId: ownerId },
     { $set },
     { new: true },
   ).lean<Record<string, unknown> | null>();
@@ -108,24 +110,24 @@ export async function DELETE(
   { params }: { params: { customerId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'delete', 'customer');
+  if (!perm.ok) return perm.response;
   if (!Types.ObjectId.isValid(params.customerId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
-  // Null out customerId on all jobs that belong to this user + customer (preserves job history)
+  // Null out customerId on all jobs that belong to this owner + customer (preserves job history)
   await Job.updateMany(
-    { customerId: params.customerId, userId: session.user.id },
+    { customerId: params.customerId, userId: ownerId },
     { $set: { customerId: null, updatedAt: new Date() } },
   );
 
   const result = await Customer.deleteOne({
     _id: params.customerId,
-    userId: session.user.id,
+    userId: ownerId,
   });
 
   if (result.deletedCount === 0) {

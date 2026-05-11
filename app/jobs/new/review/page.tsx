@@ -7,9 +7,18 @@ import ReviewClient from './ReviewClient';
 export default async function ReviewPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
+
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+  const perm = requirePerm(session, 'write', 'job');
+  if (!perm.ok) redirect('/dashboard');
 
   await dbConnect();
-  const user = await User.findById(session.user.id)
+  const ownerId = getEOId(session);
+  const user = await User.findById(ownerId)
     .select('hourlyRate partsMarkup')
     .lean<{ hourlyRate?: number; partsMarkup?: number } | null>();
 

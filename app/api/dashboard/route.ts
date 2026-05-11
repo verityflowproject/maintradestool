@@ -5,6 +5,8 @@ import { dbConnect } from '@/lib/mongodb';
 import Job from '@/lib/models/Job';
 import Invoice from '@/lib/models/Invoice';
 import BookingRequest from '@/lib/models/BookingRequest';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId, memberId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
@@ -34,19 +36,26 @@ function buildWeeklyEarnings(
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'read', 'job');
+  if (!perm.ok) return perm.response;
 
   await dbConnect();
 
-  const userId = new Types.ObjectId(session.user.id);
+  const ownerOid = new Types.ObjectId(effectiveOwnerId(session!));
+  const isMember = session!.user.accountType === 'member';
+  const memberOid = isMember && memberId(session!) ? new Types.ObjectId(memberId(session!)!) : null;
 
   const now = new Date();
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const startOf7Days = new Date(startOfToday);
   startOf7Days.setDate(startOf7Days.getDate() - 6);
+
+  // For members: scope job queries to their assignments
+  const jobMatch: Record<string, unknown> = { userId: ownerOid };
+  if (memberOid) {
+    jobMatch.assignedMemberIds = memberOid;
+  }
 
   const [
     jobsToday,
@@ -58,13 +67,13 @@ export async function GET() {
     newRequestsCount,
   ] = await Promise.all([
     // 1. Jobs created today
-    Job.countDocuments({ userId, createdAt: { $gte: startOfToday } }),
+    Job.countDocuments({ ...jobMatch, createdAt: { $gte: startOfToday } }),
 
-    // 2. Revenue earned today (invoices paid today)
+    // 2. Revenue earned today (invoices paid today) — owner-scoped
     Invoice.aggregate<{ total: number }>([
       {
         $match: {
-          userId,
+          userId: ownerOid,
           status: 'paid',
           paidDate: { $gte: startOfToday },
         },
@@ -72,11 +81,11 @@ export async function GET() {
       { $group: { _id: null, total: { $sum: '$total' } } },
     ]),
 
-    // 3. Unpaid invoices (draft + sent)
+    // 3. Unpaid invoices (draft + sent) — owner-scoped
     Invoice.aggregate<{ count: number; total: number }>([
       {
         $match: {
-          userId,
+          userId: ownerOid,
           status: { $in: ['sent', 'draft'] },
         },
       },
@@ -89,8 +98,8 @@ export async function GET() {
       },
     ]),
 
-    // 4. Recent 5 jobs
-    Job.find({ userId })
+    // 4. Recent 5 jobs — member-scoped if applicable
+    Job.find(jobMatch)
       .sort({ createdAt: -1 })
       .limit(5)
       .select('_id title status customerName total createdAt aiParsed invoiceId')
@@ -107,11 +116,11 @@ export async function GET() {
         }[]
       >(),
 
-    // 5. Weekly earnings (paid invoices in last 7 days, grouped by day)
+    // 5. Weekly earnings (paid invoices in last 7 days, grouped by day) — owner-scoped
     Invoice.aggregate<{ _id: string; total: number }>([
       {
         $match: {
-          userId,
+          userId: ownerOid,
           status: 'paid',
           paidDate: { $gte: startOf7Days },
         },
@@ -126,15 +135,17 @@ export async function GET() {
       },
     ]),
 
-    // 6. Overdue invoices
+    // 6. Overdue invoices — owner-scoped
     Invoice.countDocuments({
-      userId,
+      userId: ownerOid,
       status: 'sent',
       dueDate: { $lt: startOfToday },
     }),
 
-    // 7. New booking requests
-    BookingRequest.countDocuments({ userId, status: 'new' }),
+    // 7. New booking requests — members don't see requests; owner only
+    isMember
+      ? Promise.resolve(0)
+      : BookingRequest.countDocuments({ userId: ownerOid, status: 'new' }),
   ]);
 
   // Derive scalar values from aggregation results

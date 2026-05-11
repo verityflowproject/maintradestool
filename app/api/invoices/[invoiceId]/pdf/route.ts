@@ -66,7 +66,8 @@ export async function GET(
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  return buildResponse(params.invoiceId, session.user.id);
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  return buildResponse(params.invoiceId, effectiveOwnerId(session));
 }
 
 export async function POST(
@@ -77,5 +78,6 @@ export async function POST(
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  return buildResponse(params.invoiceId, session.user.id);
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  return buildResponse(params.invoiceId, effectiveOwnerId(session));
 }

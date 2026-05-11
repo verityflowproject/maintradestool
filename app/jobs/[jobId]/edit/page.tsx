@@ -7,6 +7,7 @@ import type { IJob } from '@/lib/models/Job';
 import User from '@/lib/models/User';
 import { getPlanState } from '@/lib/planState';
 import EditClient from './EditClient';
+import { isTeamSize } from '@/lib/team/hasTeam';
 
 function toDateStr(d: Date | null | undefined): string {
   if (!d) return '';
@@ -28,24 +29,42 @@ export default async function EditJobPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
 
   if (!Types.ObjectId.isValid(params.jobId)) notFound();
 
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId, memberId: getMId } = await import('@/lib/auth/scope');
+
+  const perm = requirePerm(session, 'write', 'job');
+  if (!perm.ok) redirect('/dashboard');
+
   await dbConnect();
+
+  const ownerId = getEOId(session);
 
   const job = await Job.findOne({
     _id: params.jobId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean<(IJob & { _id: Types.ObjectId }) | null>();
 
   if (!job) notFound();
 
+  // own-scope: member must be assigned to this job
+  if (perm.scope === 'own') {
+    const mid = getMId(session);
+    const assignedIds = (job.assignedMemberIds ?? []).map(String);
+    if (!mid || !assignedIds.includes(mid)) notFound();
+  }
+
   // Paid jobs are locked — bounce back to detail
   if (job.status === 'paid') redirect(`/jobs/${params.jobId}`);
 
-  const user = await User.findById(session.user.id)
+  const user = await User.findById(ownerId)
     .select(
-      'hourlyRate partsMarkup plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince',
+      'hourlyRate partsMarkup plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince teamSize',
     )
     .lean<{
       hourlyRate?: number;
@@ -61,6 +80,7 @@ export default async function EditJobPage({
         | null;
       subscriptionEndsAt: Date | null;
       pastDueSince: Date | null;
+      teamSize?: string;
     } | null>();
 
   if (user) {
@@ -90,7 +110,10 @@ export default async function EditJobPage({
     taxRate: (job.taxRate ?? 0) as number | '',
     internalNotes: job.internalNotes ?? '',
     status: job.status ?? 'draft',
+    assignedMemberIds: (job.assignedMemberIds ?? []).map(String),
   };
+
+  const hasTeam = isTeamSize(user?.teamSize);
 
   return (
     <EditClient
@@ -99,6 +122,7 @@ export default async function EditJobPage({
       defaultRate={user?.hourlyRate ?? 0}
       defaultMarkup={user?.partsMarkup ?? 0}
       fromVoice={searchParams?.fromVoice === '1'}
+      hasTeam={hasTeam}
     />
   );
 }

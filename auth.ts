@@ -6,6 +6,7 @@ import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { welcomeTemplate } from '@/lib/email/templates';
+import { isTeamSize } from '@/lib/team/hasTeam';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
@@ -68,6 +69,48 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.name?.split(' ')[0] ??
           '';
 
+        // v2: check if this email has a pending team invite before creating an owner account
+        const TeamMember = (await import('@/lib/models/TeamMember')).default;
+        const pendingInvite = await TeamMember.findOne({
+          email,
+          linkedUserId: null,
+          inviteTokenHash: { $ne: null },
+          inviteTokenExpiresAt: { $gt: new Date() },
+        });
+
+        if (pendingInvite) {
+          const memberUser = await User.create({
+            email,
+            password: null,
+            firstName,
+            parentOwnerId: pendingInvite.ownerUserId,
+            linkedTeamMemberId: pendingInvite._id,
+            onboardingCompleted: true,
+          });
+          pendingInvite.linkedUserId = memberUser._id;
+          pendingInvite.inviteAcceptedAt = new Date();
+          pendingInvite.inviteTokenHash = null;
+          pendingInvite.inviteTokenExpiresAt = null;
+          await pendingInvite.save();
+
+          // Notify the owner that the member accepted
+          User.findById(pendingInvite.ownerUserId)
+            .select('email firstName businessName')
+            .lean<{ email: string; firstName: string; businessName: string } | null>()
+            .then(async (owner) => {
+              if (owner) {
+                const { inviteAcceptedNotificationTemplate } = await import('@/lib/email/templates');
+                sendEmail({
+                  to: owner.email,
+                  ...inviteAcceptedNotificationTemplate(owner, pendingInvite.name),
+                }).catch(console.error);
+              }
+            })
+            .catch(console.error);
+
+          return true;
+        }
+
         const newUser = await User.create({
           email,
           password: null,
@@ -114,6 +157,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
             token.subscriptionStatus = dbUser.subscriptionStatus ?? null;
             token.subscriptionEndsAt = dbUser.subscriptionEndsAt?.toISOString() ?? null;
+            token.teamSize = dbUser.teamSize ?? '';
+
+            // v2: identity fields
+            token.parentOwnerId = dbUser.parentOwnerId ? String(dbUser.parentOwnerId) : null;
+            token.linkedTeamMemberId = dbUser.linkedTeamMemberId ? String(dbUser.linkedTeamMemberId) : null;
+            token.accountType = dbUser.parentOwnerId ? 'member' : 'owner';
+            token.effectiveOwnerId = dbUser.parentOwnerId
+              ? String(dbUser.parentOwnerId)
+              : String(dbUser._id);
+
+            if (dbUser.parentOwnerId && dbUser.linkedTeamMemberId) {
+              const TeamMember = (await import('@/lib/models/TeamMember')).default;
+              const User = (await import('@/lib/models/User')).default;
+
+              // Orphan defense: if the parent owner no longer exists, treat member as inactive
+              const ownerExists = await User.exists({ _id: dbUser.parentOwnerId });
+              if (!ownerExists) {
+                token.memberActive = false;
+                token.role = null;
+              } else {
+                const tm = await TeamMember.findById(dbUser.linkedTeamMemberId).select('role active').lean();
+                token.role = (tm as { role?: string; active?: boolean } | null)?.role ?? null;
+                token.memberActive = (tm as { role?: string; active?: boolean } | null)?.active ?? false;
+              }
+            } else {
+              token.role = 'owner';
+              token.memberActive = true;
+            }
           }
         }
       }
@@ -128,6 +199,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.businessName = token.businessName as string;
       session.user.plan = token.plan as string;
       session.user.onboardingCompleted = token.onboardingCompleted as boolean;
+      session.user.teamSize = (token.teamSize as string | undefined) ?? '';
+      session.user.hasTeam = isTeamSize(token.teamSize as string | undefined);
+
+      // v2: identity fields
+      session.user.accountType = (token.accountType as 'owner' | 'member' | undefined) ?? 'owner';
+      session.user.parentOwnerId = (token.parentOwnerId as string | null | undefined) ?? null;
+      session.user.linkedTeamMemberId = (token.linkedTeamMemberId as string | null | undefined) ?? null;
+      session.user.effectiveOwnerId = (token.effectiveOwnerId as string | undefined) ?? (token.id as string);
+      session.user.role = ((token.role as string | null | undefined) ?? null) as import('@/lib/team/roles').TeamMemberRole | null;
+      session.user.memberActive = (token.memberActive as boolean | undefined) ?? true;
+
       return session;
     },
   },

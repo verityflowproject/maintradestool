@@ -31,6 +31,14 @@ export interface JobRow {
   invoiceId?: string;
   bookingRequestId?: string | null;
   scheduledDate?: string | null;
+  assignedMemberIds?: string[];
+}
+
+export interface TeamMemberLite {
+  _id: string;
+  name: string;
+  color: string;
+  avatarInitials: string;
 }
 
 export interface RequestRow {
@@ -56,6 +64,11 @@ interface Props {
   initial: JobRow[];
   totalCount: number;
   initialRequests: RequestRow[];
+  teamMembers?: TeamMemberLite[];
+  showAvatars?: boolean;
+  hasTeam?: boolean;
+  isMember?: boolean;
+  title?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -112,14 +125,57 @@ function RequestStatusBadge({ status }: { status: RequestRow['status'] }) {
 
 // ── JobCard (with swipe) ───────────────────────────────────────────────
 
+function AvatarStack({ ids, members }: { ids: string[]; members: TeamMemberLite[] }) {
+  const memberMap = new Map(members.map((m) => [m._id, m]));
+  const visible = ids.slice(0, 3).map((id) => memberMap.get(id)).filter(Boolean) as TeamMemberLite[];
+  const overflow = ids.length - 3;
+  if (visible.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 4 }}>
+      {visible.map((m, i) => (
+        <div
+          key={m._id}
+          title={m.name}
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: m.color,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 8,
+            fontWeight: 700,
+            color: '#fff',
+            marginLeft: i > 0 ? -4 : 0,
+            border: '1px solid var(--quartz-bg)',
+            flexShrink: 0,
+          }}
+        >
+          {m.avatarInitials}
+        </div>
+      ))}
+      {overflow > 0 && (
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 2 }}>
+          +{overflow}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function JobCard({
   job,
   onDelete,
   onMarkPaid,
+  teamMembers,
+  showAvatars,
 }: {
   job: JobRow;
   onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
+  teamMembers?: TeamMemberLite[];
+  showAvatars?: boolean;
 }) {
   const router = useRouter();
   const [offset, setOffset] = useState(0);
@@ -261,9 +317,14 @@ function JobCard({
         </div>
         <div className="job-card__bottom">
           <span className="job-card__date">{formatDate(job.createdAt)}</span>
-          {job.total != null && job.total > 0 && (
-            <span className="job-card__total">{formatCurrency(job.total)}</span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {showAvatars && teamMembers && job.assignedMemberIds && job.assignedMemberIds.length > 0 && (
+              <AvatarStack ids={job.assignedMemberIds} members={teamMembers} />
+            )}
+            {job.total != null && job.total > 0 && (
+              <span className="job-card__total">{formatCurrency(job.total)}</span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -472,13 +533,44 @@ const PIPELINE_PILLS: { key: PipelineFilter; label: string }[] = [
   { key: 'declined', label: 'Declined' },
 ];
 
-export default function JobsClient({ initial, totalCount: initialTotal, initialRequests }: Props) {
+export default function JobsClient({
+  initial,
+  totalCount: initialTotal,
+  initialRequests,
+  teamMembers = [],
+  showAvatars = false,
+  hasTeam = false,
+  isMember = false,
+  title,
+}: Props) {
   const [jobs, setJobs] = useState<JobRow[]>(initial);
   const [totalCount, setTotalCount] = useState(initialTotal);
   const [requests] = useState<RequestRow[]>(initialRequests);
   const [mainTab, setMainTab] = useState<MainTab>('pipeline');
   const [activeStatus, setActiveStatus] = useState<StatusFilter>('all');
   const [pipelineFilter, setPipelineFilter] = useState<PipelineFilter>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('all'); // 'all' | 'none' | memberId
+
+  // Refetch when assigneeFilter changes (server-side filtering needed)
+  useEffect(() => {
+    if (assigneeFilter === 'all') {
+      setJobs(initial);
+      return;
+    }
+    const url =
+      assigneeFilter === 'none'
+        ? '/api/jobs?assignedTo=none&limit=50'
+        : `/api/jobs?assignedTo=${assigneeFilter}&limit=50`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d && Array.isArray(d.jobs)) {
+          setJobs(d.jobs as JobRow[]);
+        }
+      })
+      .catch(() => null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assigneeFilter]);
 
   const newRequestsCount = useMemo(
     () => requests.filter((r) => r.status === 'new').length,
@@ -521,7 +613,7 @@ export default function JobsClient({ initial, totalCount: initialTotal, initialR
     <div className="jobs-page">
       {/* Header */}
       <header className="jobs-header">
-        <h1 className="jobs-title">Jobs</h1>
+        <h1 className="jobs-title">{title ?? 'Jobs'}</h1>
         <span className="jobs-count-badge">{totalCount + requests.length}</span>
       </header>
 
@@ -607,6 +699,38 @@ export default function JobsClient({ initial, totalCount: initialTotal, initialR
             </div>
           )}
 
+          {/* Team member assignee filter — hidden for members (their list is already pre-filtered) */}
+          {!isMember && hasTeam && teamMembers.length > 0 && (
+            <div className="jobs-filter-row" style={{ paddingTop: 0 }}>
+              <button
+                className={`jobs-filter-pill${assigneeFilter === 'all' ? ' active' : ''}`}
+                onClick={() => setAssigneeFilter('all')}
+              >
+                All
+              </button>
+              <button
+                className={`jobs-filter-pill${assigneeFilter === 'none' ? ' active' : ''}`}
+                onClick={() => setAssigneeFilter('none')}
+              >
+                Unassigned
+              </button>
+              {teamMembers.map((m) => (
+                <button
+                  key={m._id}
+                  className={`jobs-filter-pill${assigneeFilter === m._id ? ' active' : ''}`}
+                  onClick={() => setAssigneeFilter(m._id)}
+                  style={
+                    assigneeFilter === m._id
+                      ? { borderColor: m.color, background: `${m.color}22`, color: m.color }
+                      : {}
+                  }
+                >
+                  {m.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          )}
+
           {jobs.length === 0 && (
             <div className="jobs-empty">
               <Briefcase className="jobs-empty__icon" size={48} />
@@ -630,13 +754,15 @@ export default function JobsClient({ initial, totalCount: initialTotal, initialR
 
           {filteredJobs.length > 0 && (
             <div className="jobs-list">
-              {filteredJobs.map((job) => (
-                <JobCard
-                  key={job._id}
-                  job={job}
-                  onDelete={handleDelete}
-                  onMarkPaid={handleMarkPaid}
-                />
+            {filteredJobs.map((job) => (
+              <JobCard
+                key={job._id}
+                job={job}
+                onDelete={handleDelete}
+                onMarkPaid={handleMarkPaid}
+                teamMembers={teamMembers}
+                showAvatars={showAvatars}
+              />
               ))}
             </div>
           )}

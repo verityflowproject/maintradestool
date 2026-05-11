@@ -25,9 +25,12 @@ export async function POST(
 
   await dbConnect();
 
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  const ownerId = effectiveOwnerId(session);
+
   const invoice = await Invoice.findOne({
     _id: params.invoiceId,
-    userId: session.user.id,
+    userId: ownerId,
   })
     .select('invoiceNumber publicAccessToken')
     .lean<{ invoiceNumber: string; publicAccessToken: string } | null>();

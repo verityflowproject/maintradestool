@@ -7,6 +7,7 @@ import Customer from '@/lib/models/Customer';
 import Invoice from '@/lib/models/Invoice';
 import { getPlanState } from '@/lib/planState';
 import BillingExpiredClient from './BillingExpiredClient';
+import MemberBillingExpiredClient from './MemberBillingExpiredClient';
 
 export default async function BillingExpiredPage({
   searchParams,
@@ -17,6 +18,16 @@ export default async function BillingExpiredPage({
   if (!session?.user?.id) redirect('/onboarding');
 
   await dbConnect();
+
+  // Members see a different page — owner's plan has lapsed, they cannot upgrade
+  if (session.user.accountType === 'member') {
+    const owner = await User.findById(session.user.effectiveOwnerId)
+      .select('businessName')
+      .lean<{ businessName: string } | null>();
+    return (
+      <MemberBillingExpiredClient ownerBusinessName={owner?.businessName ?? 'Your team'} />
+    );
+  }
 
   const user = await User.findById(session.user.id)
     .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince stripeCustomerId createdAt')

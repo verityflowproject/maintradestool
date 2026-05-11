@@ -14,8 +14,9 @@ export async function GET(): Promise<NextResponse> {
 
   await dbConnect();
 
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
   const callouts = await ContactSubmission.find({
-    userId: session.user.id,
+    userId: effectiveOwnerId(session),
     type: 'feature_request',
     status: 'shipped',
     userNotifiedOfShip: false,

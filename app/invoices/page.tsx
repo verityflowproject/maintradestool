@@ -13,6 +13,15 @@ export default async function InvoicesPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
+
+  // Apprentice cannot read invoices per permission matrix
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+  const perm = requirePerm(session, 'read', 'invoice');
+  if (!perm.ok) redirect('/dashboard');
 
   const params = await searchParams;
   const filterParam = Array.isArray(params.filter)
@@ -20,11 +29,12 @@ export default async function InvoicesPage({
     : (params.filter ?? 'all');
 
   await dbConnect();
+  const ownerId = getEOId(session);
 
   const [{ invoices, counts }, summary, dbUser] = await Promise.all([
-    listInvoices(session.user.id, 'all'),
-    getInvoiceSummary(session.user.id),
-    User.findById(session.user.id)
+    listInvoices(ownerId, 'all'),
+    getInvoiceSummary(ownerId),
+    User.findById(ownerId)
       .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
       .lean<{
         plan: string;

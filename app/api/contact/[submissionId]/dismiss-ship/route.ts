@@ -23,9 +23,10 @@ export async function POST(
 
   await dbConnect();
 
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
   const submission = await ContactSubmission.findOne({
     _id: submissionId,
-    userId: session.user.id,
+    userId: effectiveOwnerId(session),
   });
 
   if (!submission) {

@@ -18,18 +18,23 @@ export default async function CustomerDetailPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
   if (!Types.ObjectId.isValid(params.customerId)) notFound();
 
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
   await dbConnect();
+  const ownerId = getEOId(session);
 
   const [customerDoc, jobDocs] = await Promise.all([
     Customer.findOne({
       _id: params.customerId,
-      userId: session.user.id,
+      userId: ownerId,
     }).lean<CustomerData | null>(),
     Job.find({
       customerId: params.customerId,
-      userId: session.user.id,
+      userId: ownerId,
     })
       .sort({ createdAt: -1 })
       .select(

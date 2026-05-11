@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model, Types } from 'mongoose';
 
 export interface IBookingProfile {
   headline: string;
@@ -19,6 +19,11 @@ export interface INotificationPrefs {
   trialReminders: boolean;
 }
 
+export interface ITeamPreferences {
+  showAvatarsOnJobs: boolean;
+  requireAssignmentBeforeInvoice: boolean;
+}
+
 export interface ITrialWarningsSent {
   sevenDay: boolean;
   threeDay: boolean;
@@ -32,6 +37,9 @@ export interface IUser extends Document {
   phone: string | null;
   businessEmail: string | null;
   firstName: string;
+  // null = standalone owner; set = invited member under a parent owner
+  parentOwnerId: Types.ObjectId | null;
+  linkedTeamMemberId: Types.ObjectId | null;
   businessName: string;
   trade: string;
   teamSize: string;
@@ -65,9 +73,18 @@ export interface IUser extends Document {
   bookingSlug: string | null;
   bookingEnabled: boolean;
   bookingProfile: IBookingProfile;
+  teamPreferences: ITeamPreferences;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const TeamPreferencesSchema = new Schema<ITeamPreferences>(
+  {
+    showAvatarsOnJobs: { type: Boolean, default: true },
+    requireAssignmentBeforeInvoice: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
 
 const BookingProfileSchema = new Schema<IBookingProfile>(
   {
@@ -129,26 +146,44 @@ const UserSchema = new Schema<IUser>({
     required: true,
     trim: true,
   },
+  // null = standalone owner account; populated = invited team member
+  parentOwnerId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true,
+  },
+  linkedTeamMemberId: {
+    type: Schema.Types.ObjectId,
+    ref: 'TeamMember',
+    default: null,
+  },
+  // Owner-only fields: required only when the user is not an invited member
   businessName: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
     trim: true,
+    default: '',
   },
   trade: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
+    default: '',
   },
   teamSize: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
+    default: '',
   },
   jobType: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
+    default: '',
   },
   experienceYears: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
+    default: '',
   },
   painPoints: {
     type: [String],
@@ -156,12 +191,12 @@ const UserSchema = new Schema<IUser>({
   },
   hourlyRate: {
     type: Number,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
     default: 85,
   },
   partsMarkup: {
     type: Number,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
     default: 20,
   },
   defaultTaxRate: {
@@ -170,11 +205,12 @@ const UserSchema = new Schema<IUser>({
   },
   region: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
+    default: '',
   },
   invoiceMethod: {
     type: String,
-    required: true,
+    required: function (this: IUser) { return this.parentOwnerId == null; },
     default: 'email',
   },
   paymentTerms: {
@@ -282,6 +318,13 @@ const UserSchema = new Schema<IUser>({
       responseTime: '',
       showPhone: false,
       showEmail: false,
+    }),
+  },
+  teamPreferences: {
+    type: TeamPreferencesSchema,
+    default: () => ({
+      showAvatarsOnJobs: true,
+      requireAssignmentBeforeInvoice: false,
     }),
   },
   createdAt: {

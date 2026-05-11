@@ -18,9 +18,9 @@ function debugLog(location: string, message: string, data: Record<string, unknow
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const perm = requirePerm(session, 'write', 'billing');
+  if (!perm.ok) return perm.response;
 
   let body: { plan?: string };
   try {
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   try {
     await dbConnect();
-    const user = await User.findById(session.user.id);
+    const user = await User.findById(session!.user.id);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }

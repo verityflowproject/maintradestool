@@ -11,14 +11,24 @@ export const dynamic = 'force-dynamic';
 export default async function RequestsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
+
+  // Booking requests: owner and manager only per permission matrix
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+  const perm = requirePerm(session, 'read', 'booking');
+  if (!perm.ok) redirect('/dashboard');
 
   await dbConnect();
+  const ownerId = getEOId(session);
 
   const [requests, dbUser] = await Promise.all([
-    BookingRequest.find({ userId: session.user.id })
+    BookingRequest.find({ userId: ownerId })
       .sort({ createdAt: -1 })
       .lean(),
-    User.findById(session.user.id)
+    User.findById(ownerId)
       .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
       .lean<{
         plan: string;

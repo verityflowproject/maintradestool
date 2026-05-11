@@ -14,7 +14,8 @@ export async function GET(): Promise<NextResponse> {
 
   await dbConnect();
 
-  const submissions = await ContactSubmission.find({ userId: session.user.id })
+  const { effectiveOwnerId } = await import('@/lib/auth/scope');
+  const submissions = await ContactSubmission.find({ userId: effectiveOwnerId(session) })
     .sort({ createdAt: -1 })
     .select('-adminNotes -upvotedBy')
     .lean();

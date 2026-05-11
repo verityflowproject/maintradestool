@@ -1,5 +1,6 @@
 import 'next-auth';
 import 'next-auth/jwt';
+import type { TeamMemberRole } from '@/lib/team/roles';
 
 declare module 'next-auth' {
   interface Session {
@@ -10,6 +11,15 @@ declare module 'next-auth' {
       businessName: string;
       plan: string;
       onboardingCompleted: boolean;
+      teamSize: string;
+      hasTeam: boolean;
+      // v2: identity fields
+      accountType: 'owner' | 'member';
+      parentOwnerId: string | null;
+      linkedTeamMemberId: string | null;
+      effectiveOwnerId: string;
+      role: TeamMemberRole | null;
+      memberActive: boolean;
     };
   }
 
@@ -34,5 +44,13 @@ declare module 'next-auth/jwt' {
     trialEndsAt?: string | null;
     subscriptionStatus?: string | null;
     subscriptionEndsAt?: string | null;
+    teamSize?: string;
+    // v2: identity fields
+    accountType?: 'owner' | 'member';
+    parentOwnerId?: string | null;
+    linkedTeamMemberId?: string | null;
+    effectiveOwnerId?: string;
+    role?: string | null;
+    memberActive?: boolean;
   }
 }

@@ -24,6 +24,16 @@ function serializeJob(doc: Record<string, unknown>) {
 export default async function CalendarPage() {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
+
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { jobReadFilter } = await import('@/lib/auth/jobScope');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+
+  const perm = requirePerm(session, 'read', 'job');
+  if (!perm.ok) redirect('/dashboard');
 
   const now = new Date();
   const year = now.getFullYear();
@@ -31,19 +41,22 @@ export default async function CalendarPage() {
 
   await dbConnect();
 
+  const ownerId = getEOId(session);
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 1);
 
+  const jobFilter = jobReadFilter(session, perm.scope);
+
   const [rows, unscheduledRows, dbUser] = await Promise.all([
     Job.find({
-      userId: session.user.id,
+      ...jobFilter,
       scheduledDate: { $gte: startOfMonth, $lt: endOfMonth },
     })
       .select('_id title customerName scheduledDate scheduledStart scheduledEnd status total')
       .lean<Record<string, unknown>[]>(),
 
     Job.find({
-      userId: session.user.id,
+      ...jobFilter,
       status: 'complete',
       $or: [{ scheduledDate: null }, { scheduledDate: { $exists: false } }],
     })
@@ -52,7 +65,7 @@ export default async function CalendarPage() {
       .select('_id title customerName scheduledDate scheduledStart scheduledEnd status total')
       .lean<Record<string, unknown>[]>(),
 
-    User.findById(session.user.id)
+    User.findById(ownerId)
       .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince')
       .lean<{
         plan: string;

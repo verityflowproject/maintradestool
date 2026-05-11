@@ -14,14 +14,23 @@ interface Props {
 export default async function RequestDetailPage({ params }: Props) {
   const session = await auth();
   if (!session?.user?.id) redirect('/');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
+
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId } = await import('@/lib/auth/scope');
+  const perm = requirePerm(session, 'read', 'booking');
+  if (!perm.ok) redirect('/dashboard');
 
   if (!Types.ObjectId.isValid(params.requestId)) notFound();
 
   await dbConnect();
+  const ownerId = getEOId(session);
 
   const request = await BookingRequest.findOne({
     _id: params.requestId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean();
 
   if (!request) notFound();

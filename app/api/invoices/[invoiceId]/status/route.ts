@@ -9,6 +9,8 @@ import Customer from '@/lib/models/Customer';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { invoicePaidTemplate, firstInvoicePaidTemplate } from '@/lib/email/templates';
+import { requirePerm } from '@/lib/auth/permissions';
+import { effectiveOwnerId } from '@/lib/auth/scope';
 
 export const runtime = 'nodejs';
 
@@ -20,9 +22,8 @@ export async function PATCH(
   { params }: { params: { invoiceId: string } },
 ) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const perm = requirePerm(session, 'write', 'invoice');
+  if (!perm.ok) return perm.response;
 
   if (!Types.ObjectId.isValid(params.invoiceId)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -40,10 +41,11 @@ export async function PATCH(
   const newStatus = body.status as AllowedStatus;
 
   await dbConnect();
+  const ownerId = effectiveOwnerId(session!);
 
   const invoice = await Invoice.findOne({
     _id: params.invoiceId,
-    userId: session.user.id,
+    userId: ownerId,
   }).lean<(IInvoice & { _id: Types.ObjectId }) | null>();
 
   if (!invoice) {
@@ -60,28 +62,28 @@ export async function PATCH(
   }
 
   await Invoice.updateOne(
-    { _id: invoice._id, userId: session.user.id },
+    { _id: invoice._id, userId: ownerId },
     { $set: updateFields },
   );
 
   // Side-effects only when first transitioning to paid
   if (transitioningToPaid) {
     await Job.updateOne(
-      { _id: invoice.jobId, userId: session.user.id },
+      { _id: invoice.jobId, userId: ownerId },
       { $set: { status: 'paid', updatedAt: new Date() } },
     );
 
     if (invoice.customerId) {
       await Customer.updateOne(
-        { _id: invoice.customerId, userId: session.user.id },
+        { _id: invoice.customerId, userId: ownerId },
         { $inc: { totalBilled: invoice.total } },
       );
     }
   }
 
-  // Invoice paid notification + first-paid milestone email
+  // Invoice paid notification + first-paid milestone email (always to the owner, not the member)
   if (transitioningToPaid) {
-    const paidUser = await User.findById(session.user.id);
+    const paidUser = await User.findById(ownerId);
     if (paidUser) {
       sendEmail({
         to: paidUser.email,

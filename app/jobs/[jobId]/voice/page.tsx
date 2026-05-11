@@ -14,26 +14,43 @@ export default async function JobVoicePage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/onboarding');
+  if (session.user.accountType === 'member' && !session.user.memberActive) {
+    redirect('/team-access-revoked');
+  }
 
   if (!Types.ObjectId.isValid(params.jobId)) notFound();
 
+  const { requirePerm } = await import('@/lib/auth/permissions');
+  const { effectiveOwnerId: getEOId, memberId: getMId } = await import('@/lib/auth/scope');
+
+  const perm = requirePerm(session, 'write', 'job');
+  if (!perm.ok) redirect('/dashboard');
+
   await dbConnect();
 
-  // Verify job ownership
+  const ownerId = getEOId(session);
+
+  // Verify job ownership + own-scope
   const job = await Job.findOne({
     _id: params.jobId,
-    userId: session.user.id,
+    userId: ownerId,
   })
-    .select('_id status')
-    .lean<{ _id: Types.ObjectId; status: string } | null>();
+    .select('_id status assignedMemberIds')
+    .lean<{ _id: Types.ObjectId; status: string; assignedMemberIds?: Types.ObjectId[] } | null>();
 
   if (!job) notFound();
+
+  if (perm.scope === 'own') {
+    const mid = getMId(session);
+    const assignedIds = (job.assignedMemberIds ?? []).map(String);
+    if (!mid || !assignedIds.includes(mid)) notFound();
+  }
 
   // Paid jobs are locked — no edits allowed
   if (job.status === 'paid') redirect(`/jobs/${params.jobId}`);
 
-  // Plan gate
-  const user = await User.findById(session.user.id)
+  // Plan gate (use owner's plan)
+  const user = await User.findById(ownerId)
     .select('plan trialEndsAt subscriptionStatus subscriptionEndsAt pastDueSince createdAt')
     .lean<{
       plan: 'trial' | 'pro' | 'cancelled';

@@ -48,6 +48,7 @@ export interface IJob extends Document {
 
   tags: string[];
   internalNotes: string;
+  assignedMemberIds: Types.ObjectId[];
 
   createdAt: Date;
   updatedAt: Date;
@@ -129,6 +130,12 @@ const JobSchema = new Schema<IJob>({
   tags: { type: [String], default: [] },
   internalNotes: { type: String, default: '' },
 
+  assignedMemberIds: {
+    type: [Schema.Types.ObjectId],
+    ref: 'TeamMember',
+    default: [],
+  },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
@@ -137,6 +144,7 @@ JobSchema.index({ userId: 1, createdAt: -1 });
 JobSchema.index({ userId: 1, status: 1 });
 JobSchema.index({ userId: 1, customerId: 1 });
 JobSchema.index({ userId: 1, scheduledDate: 1 });
+JobSchema.index({ userId: 1, assignedMemberIds: 1 });
 
 JobSchema.pre('save', async function () {
   const hours = Number(this.laborHours) || 0;
