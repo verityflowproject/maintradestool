@@ -169,14 +169,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             if (dbUser.parentOwnerId && dbUser.linkedTeamMemberId) {
               const TeamMember = (await import('@/lib/models/TeamMember')).default;
-              const User = (await import('@/lib/models/User')).default;
+              const UserModel = (await import('@/lib/models/User')).default;
 
-              // Orphan defense: if the parent owner no longer exists, treat member as inactive
-              const ownerExists = await User.exists({ _id: dbUser.parentOwnerId });
-              if (!ownerExists) {
+              // Orphan defense: if the parent owner no longer exists, treat member as inactive.
+              // Also surface the *owner's* teamSize on the member's session so that
+              // `hasTeam`-gated UI (BottomNav Team tab, JobForm assignment chips) renders
+              // correctly for manager/office members who belong to a team account.
+              const owner = await UserModel.findById(dbUser.parentOwnerId)
+                .select('teamSize')
+                .lean<{ teamSize?: string } | null>();
+              if (!owner) {
                 token.memberActive = false;
                 token.role = null;
               } else {
+                token.teamSize = owner.teamSize ?? '';
                 const tm = await TeamMember.findById(dbUser.linkedTeamMemberId).select('role active').lean();
                 token.role = (tm as { role?: string; active?: boolean } | null)?.role ?? null;
                 token.memberActive = (tm as { role?: string; active?: boolean } | null)?.active ?? false;

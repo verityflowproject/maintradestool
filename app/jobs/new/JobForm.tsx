@@ -133,6 +133,12 @@ export default function JobForm({
   const { toast } = useToast();
   const { data: session } = useSession();
   const hasTeam = session?.user?.hasTeam === true;
+  // Only owner/manager have 'all' write scope on jobs — they're the only roles
+  // who should see the multi-member assignment chip selector. tech/lead/apprentice
+  // POSTs are silently clamped to [self] by the API, so showing them the chips
+  // would be misleading.
+  const role = session?.user?.role ?? 'owner';
+  const canAssignAnyone = role === 'owner' || role === 'manager';
 
   const baseDefaults: FormState = {
     customerId: null,
@@ -163,7 +169,7 @@ export default function JobForm({
 
   const [teamMembers, setTeamMembers] = useState<TeamMemberLite[]>([]);
   useEffect(() => {
-    if (!hasTeam) return;
+    if (!hasTeam || !canAssignAnyone) return;
     fetch('/api/team')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -174,7 +180,7 @@ export default function JobForm({
         }
       })
       .catch(() => null);
-  }, [hasTeam]);
+  }, [hasTeam, canAssignAnyone]);
 
   const [newCustomerMode, setNewCustomerMode] = useState(false);
   const [showSchedule, setShowSchedule] = useState(!!(initialValues?.scheduledDate));
@@ -778,7 +784,7 @@ export default function JobForm({
       </section>
 
       {/* ── Team Assignment (team accounts only) ───────────────────── */}
-      {hasTeam && teamMembers.length > 0 && (
+      {hasTeam && canAssignAnyone && teamMembers.length > 0 && (
         <section className="job-form-section">
           <p className="section-label" style={{ marginBottom: 8 }}>Assigned to</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

@@ -8,7 +8,7 @@ import { isAdminUnlockedFromRequest } from '@/lib/admin/adminUnlock';
 // /jobs + /feature-board which are also read-only — write/voice routes inside
 // /jobs are still blocked by the per-page server guards).
 const BILLING_PASSTHROUGH =
-  /^\/(dashboard|jobs|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact|feature-board|team)(\/|$|\?)/;
+  /^\/(dashboard|jobs|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact|feature-board|team|time)(\/|$|\?)/;
 
 // Owner-only routes that members should never access
 const OWNER_ONLY_PATHS =
@@ -64,7 +64,7 @@ export async function middleware(req: NextRequest) {
   });
 
   const isProtected =
-    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team)(\/|$|\?)/.test(pathname);
+    /^\/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team|time)(\/|$|\?)/.test(pathname);
   const isOnboarding = pathname === '/onboarding';
   const isAdminRoute =
     pathname === '/admin' ||
@@ -136,7 +136,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team)(.*)?',
+    '/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team|time)(.*)?',
     '/onboarding',
     '/admin/:path*',
     '/api/admin/:path*',

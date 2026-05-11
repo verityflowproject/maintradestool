@@ -245,11 +245,20 @@ export async function PATCH(
   if (body.aiParsed === true) job.aiParsed = true;
 
   // ── Assigned members — only update when the field is present in body ─
+  // Scope-aware: 'own'-scope members (tech/lead) cannot reassign jobs to
+  // anyone else; their writes are clamped to themselves, mirroring POST.
   if ('assignedMemberIds' in body) {
-    job.assignedMemberIds = await validateAssignedMemberIds(
-      body.assignedMemberIds,
-      ownerId,
-    );
+    if (perm.scope === 'own') {
+      const mid = memberId(session!);
+      job.assignedMemberIds = mid
+        ? await validateAssignedMemberIds([mid], ownerId)
+        : [];
+    } else {
+      job.assignedMemberIds = await validateAssignedMemberIds(
+        body.assignedMemberIds,
+        ownerId,
+      );
+    }
   }
 
   // Status: allow draft→complete transition; otherwise preserve existing
