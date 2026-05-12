@@ -180,7 +180,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.subscriptionStatus = dbUser.subscriptionStatus ?? null;
           token.subscriptionEndsAt = dbUser.subscriptionEndsAt?.toISOString() ?? null;
           token.teamSize = dbUser.teamSize ?? '';
-          token.emailVerified = dbUser.emailVerified ?? false;
+          // Use NextAuth's Date|null convention: null = unverified, Date = verified-at.
+          // Truthy/falsy checks at consumer sites still behave the same.
+          token.emailVerified = dbUser.emailVerified
+            ? (dbUser.emailVerifiedAt ?? new Date())
+            : null;
 
           // v2: identity fields
           token.parentOwnerId = dbUser.parentOwnerId ? String(dbUser.parentOwnerId) : null;
@@ -237,7 +241,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.effectiveOwnerId = (token.effectiveOwnerId as string | undefined) ?? (token.id as string);
       session.user.role = ((token.role as string | null | undefined) ?? null) as import('@/lib/team/roles').TeamMemberRole | null;
       session.user.memberActive = (token.memberActive as boolean | undefined) ?? true;
-      session.user.emailVerified = (token.emailVerified as boolean | undefined) ?? false;
+      session.user.emailVerified = (token.emailVerified as Date | null | undefined) ?? null;
 
       return session;
     },

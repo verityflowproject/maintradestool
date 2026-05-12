@@ -13,8 +13,9 @@ declare module 'next-auth' {
       onboardingCompleted: boolean;
       teamSize: string;
       hasTeam: boolean;
-      // Email verification
-      emailVerified: boolean;
+      // Email verification — Date|null to match NextAuth's native shape.
+      // null = not yet confirmed, Date = verified-at timestamp.
+      emailVerified: Date | null;
       // v2: identity fields
       accountType: 'owner' | 'member';
       parentOwnerId: string | null;
@@ -47,8 +48,8 @@ declare module 'next-auth/jwt' {
     subscriptionStatus?: string | null;
     subscriptionEndsAt?: string | null;
     teamSize?: string;
-    // Email verification
-    emailVerified?: boolean;
+    // Email verification — Date|null to align with Session.user.emailVerified
+    emailVerified?: Date | null;
     // v2: identity fields
     accountType?: 'owner' | 'member';
     parentOwnerId?: string | null;

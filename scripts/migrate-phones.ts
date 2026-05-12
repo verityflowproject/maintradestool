@@ -66,7 +66,7 @@ async function migrateCollection(
 
   const collection = mongoose.connection.db!.collection(collectionName);
   const cursor = collection.find(
-    { [phoneField]: { $exists: true, $ne: null, $ne: '' } },
+    { [phoneField]: { $exists: true, $nin: [null, ''] } },
     { projection: { _id: 1, [phoneField]: 1 } },
   );
 

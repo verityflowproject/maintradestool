@@ -311,11 +311,12 @@ export default function DashboardClient({ firstName, businessName, planState, tr
   useEffect(() => {
     if (
       searchParams?.get('verify_required') === '1' &&
-      session?.user?.emailVerified === false
+      session?.user &&
+      !session.user.emailVerified
     ) {
       setShowVerifyModal(true);
     }
-  }, [searchParams, session?.user?.emailVerified]);
+  }, [searchParams, session?.user, session?.user?.emailVerified]);
 
   return (
     <div className="dashboard-wrap">

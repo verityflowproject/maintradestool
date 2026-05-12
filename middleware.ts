@@ -139,7 +139,7 @@ export async function middleware(req: NextRequest) {
   if (
     isProtected &&
     token &&
-    token.emailVerified === false &&
+    !token.emailVerified &&
     token.accountType !== 'member' &&
     EMAIL_VERIFY_GATED.test(pathname)
   ) {
