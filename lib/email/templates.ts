@@ -793,6 +793,80 @@ export function ownerAccountClosedTemplate(
   };
 }
 
+// ── Email verification ───────────────────────────────────────────────────────
+
+/**
+ * Sent on manual signup and on every resend request.
+ * When `isEmailChange` is true the copy clarifies it's for an address change.
+ */
+export function verifyEmailTemplate(
+  user: Pick<IUser, '_id' | 'firstName' | 'email'>,
+  verifyLink: string,
+  isEmailChange = false,
+): TemplateResult {
+  const subject = isEmailChange
+    ? 'Confirm your new VerityFlow email address'
+    : 'Confirm your email to unlock VerityFlow';
+
+  const heading = isEmailChange
+    ? 'Confirm your new email address'
+    : 'One step left — confirm your email';
+
+  const body = isEmailChange
+    ? `
+      <p>Hi ${user.firstName || 'there'},</p>
+      <p>You requested an email-address change on VerityFlow. Click the button below to confirm <strong>${user.email}</strong> as your new login email.</p>
+      <p>This link expires in <strong>48 hours</strong>. If you didn't request this change, you can safely ignore this email — your old address remains active.</p>
+    `
+    : `
+      <p>Hi ${user.firstName || 'there'},</p>
+      <p>You're almost set. Confirm your email address to unlock everything in VerityFlow:</p>
+      <ul style="margin:12px 0;padding-left:20px;">
+        <li style="margin-bottom:6px;"><strong>Voice job logging</strong> — describe a job out loud</li>
+        <li style="margin-bottom:6px;"><strong>Invoice generation</strong> — professional PDFs in seconds</li>
+        <li style="margin-bottom:6px;"><strong>Public booking page</strong> — take job requests online</li>
+        <li style="margin-bottom:6px;"><strong>Full 14-day trial</strong> — your trial clock starts when you confirm</li>
+      </ul>
+      <p style="color:#6b7280;font-size:13px;">This link expires in 48 hours. If you didn't create a VerityFlow account, you can safely ignore this email.</p>
+    `;
+
+  return {
+    subject,
+    preheader: isEmailChange
+      ? 'Confirm your new email address — link expires in 48 hours.'
+      : 'Confirm your email to start your 14-day trial.',
+    heading,
+    body,
+    ctaText: isEmailChange ? 'Confirm new email' : 'Confirm my email',
+    ctaUrl: verifyLink,
+  };
+}
+
+/**
+ * Sent to the OLD email address after an email-change is successfully completed.
+ */
+export function emailChangedNotificationTemplate(
+  oldEmail: string,
+  newEmail: string,
+): TemplateResult {
+  const maskedNew =
+    newEmail.replace(/(?<=.{2}).(?=[^@]*@)/g, '*');
+
+  return {
+    subject: 'Your VerityFlow email address was changed',
+    preheader: 'If this wasn\'t you, contact support immediately.',
+    heading: 'Email address changed',
+    body: `
+      <p>This is a security notice.</p>
+      <p>The login email address for your VerityFlow account was changed to <strong>${maskedNew}</strong>.</p>
+      <p>If you made this change, no action is needed.</p>
+      <p><strong>If you did not make this change</strong>, your account may be compromised. Contact support immediately at <a href="mailto:support@verityflow.io" style="color:#1E90FF;">support@verityflow.io</a>.</p>
+    `,
+    ctaText: 'Contact support',
+    ctaUrl: 'mailto:support@verityflow.io',
+  };
+}
+
 export function memberLeftTemplate(
   owner: Pick<IUser, 'firstName' | 'businessName'>,
   memberName: string,

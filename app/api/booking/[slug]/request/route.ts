@@ -5,6 +5,16 @@ import BookingRequest from '@/lib/models/BookingRequest';
 import { sendMail, FROM_ADDRESS } from '@/lib/email/gmail';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
 import { getPlanState } from '@/lib/planState';
+import {
+  validatePhone,
+  validateEmail,
+  validateBookingDate,
+  validateFreeTextShort,
+  validatePersonName,
+  validateAddress,
+  stripNullBytes,
+  validationError,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -39,9 +49,38 @@ export async function POST(
   const { name, phone, serviceNeeded } = body;
   if (!name?.trim() || !phone?.trim() || !serviceNeeded?.trim()) {
     return NextResponse.json(
-      { error: 'name, phone, and serviceNeeded are required' },
+      { error: 'Please fill in your name, phone number, and what you need done.' },
       { status: 422 },
     );
+  }
+
+  const nameErr = validatePersonName(name.trim(), 'Name');
+  if (nameErr) return NextResponse.json(validationError('name', nameErr), { status: 422 });
+
+  const phoneErr = validatePhone(phone);
+  if (phoneErr) return NextResponse.json(validationError('phone', phoneErr), { status: 422 });
+
+  if (body.email?.trim()) {
+    const emailErr = validateEmail(body.email.trim());
+    if (emailErr) return NextResponse.json(validationError('email', emailErr), { status: 422 });
+  }
+
+  if (body.address) {
+    const addrErr = validateAddress(body.address.trim());
+    if (addrErr) return NextResponse.json(validationError('address', addrErr), { status: 422 });
+  }
+
+  const serviceErr = validateFreeTextShort(serviceNeeded.trim(), 'Service description');
+  if (serviceErr) return NextResponse.json(validationError('serviceNeeded', serviceErr), { status: 422 });
+
+  if (body.preferredDate) {
+    const dateErr = validateBookingDate(body.preferredDate);
+    if (dateErr) return NextResponse.json(validationError('preferredDate', dateErr), { status: 422 });
+  }
+
+  if (body.message) {
+    const msgErr = validateFreeTextShort(body.message.trim(), 'Message');
+    if (msgErr) return NextResponse.json(validationError('message', msgErr), { status: 422 });
   }
 
   await dbConnect();
@@ -62,14 +101,14 @@ export async function POST(
 
   const request = await BookingRequest.create({
     userId: user._id,
-    name: name.trim(),
+    name: stripNullBytes(name.trim()),
     phone: phone.trim(),
     email: body.email?.trim() ?? '',
-    address: body.address?.trim() ?? '',
-    serviceNeeded: serviceNeeded.trim(),
+    address: stripNullBytes(body.address?.trim() ?? ''),
+    serviceNeeded: stripNullBytes(serviceNeeded.trim()),
     preferredDate: body.preferredDate ?? '',
     preferredTime: body.preferredTime ?? '',
-    message: body.message?.trim() ?? '',
+    message: stripNullBytes(body.message?.trim() ?? ''),
   });
 
   // Send notification email to tradesperson (gated on preference)

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { AlertCircle, Bell, ChevronRight, Mic, RefreshCw } from 'lucide-react';
 import {
   AreaChart,
@@ -16,6 +18,7 @@ import { formatCurrency } from '@/lib/utils/formatCurrency';
 import type { PlanState } from '@/lib/planState';
 import type { TeamMemberRole } from '@/lib/team/roles';
 import CardCaptureNudge from '@/components/billing/CardCaptureNudge';
+import VerifyEmailModal from '@/components/VerifyEmailModal';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -301,8 +304,27 @@ export default function DashboardClient({ firstName, businessName, planState, tr
   const greeting = greetPrefix(now);
   const weekTotal = data?.weeklyEarnings.reduce((s, d) => s + d.total, 0) ?? 0;
 
+  const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+
+  useEffect(() => {
+    if (
+      searchParams?.get('verify_required') === '1' &&
+      session?.user?.emailVerified === false
+    ) {
+      setShowVerifyModal(true);
+    }
+  }, [searchParams, session?.user?.emailVerified]);
+
   return (
     <div className="dashboard-wrap">
+      {showVerifyModal && (
+        <VerifyEmailModal
+          onClose={() => setShowVerifyModal(false)}
+          message="This feature unlocks once you confirm your email address."
+        />
+      )}
       {/* Top bar */}
       <div className="dashboard-top">
         <div className="dashboard-greeting">

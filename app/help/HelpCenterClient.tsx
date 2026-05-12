@@ -520,7 +520,7 @@ export default function HelpCenterClient({ firstName: _firstName }: Props) {
       style={{ minHeight: '100dvh', background: 'var(--bg-void)', paddingBottom: 48 }}
     >
       {/* Header */}
-      <div style={{ padding: 'calc(20px + env(safe-area-inset-top)) 20px 0' }}>
+      <div style={{ padding: '20px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
           <button
             type="button"

@@ -4,6 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { TEAM_MEMBER_ROLES } from '@/lib/team/roles';
+import {
+  sanitizePhone,
+  formatPhoneAsYouType,
+  validatePhone,
+  validateEmail,
+  validateHourlyRate,
+  sanitizeMoney,
+  collectErrors,
+} from '@/lib/utils/validators';
 
 const MEMBER_COLORS = [
   '#4A9EFF',
@@ -32,6 +41,7 @@ export default function AddMemberClient({ defaultRate }: Props) {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,7 +49,17 @@ export default function AddMemberClient({ defaultRate }: Props) {
       setError('Name is required.');
       return;
     }
+    const errs = collectErrors({
+      phone: validatePhone(phone),
+      email: validateEmail(email),
+      hourlyRate: validateHourlyRate(hourlyRate),
+    });
+    if (errs) {
+      setFieldErrors(errs);
+      return;
+    }
     setError(null);
+    setFieldErrors({});
     setSubmitting(true);
     try {
       const res = await fetch('/api/team', {
@@ -97,6 +117,7 @@ export default function AddMemberClient({ defaultRate }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Full name"
+            maxLength={80}
             autoFocus
           />
         </div>
@@ -117,39 +138,73 @@ export default function AddMemberClient({ defaultRate }: Props) {
         </div>
 
         <div>
-          <label className="section-label">Email</label>
+          <label className="section-label" htmlFor="member-email">Email</label>
           <input
-            className="input-field"
+            id="member-email"
+            aria-invalid={!!fieldErrors.email || undefined}
+            aria-describedby={fieldErrors.email ? 'member-email-err' : undefined}
+            className={`input-field${fieldErrors.email ? ' input-field--error' : ''}`}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: '' }));
+            }}
             placeholder="optional"
+            maxLength={254}
+            inputMode="email"
           />
+          {fieldErrors.email && (
+            <p id="member-email-err" className="field-error" role="alert">{fieldErrors.email}</p>
+          )}
         </div>
 
         <div>
-          <label className="section-label">Phone</label>
+          <label className="section-label" htmlFor="member-phone">Phone</label>
           <input
-            className="input-field"
+            id="member-phone"
+            aria-invalid={!!fieldErrors.phone || undefined}
+            aria-describedby={fieldErrors.phone ? 'member-phone-err' : undefined}
+            className={`input-field${fieldErrors.phone ? ' input-field--error' : ''}`}
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="optional"
+            onChange={(e) => {
+              setPhone(formatPhoneAsYouType(sanitizePhone(e.target.value)));
+              if (fieldErrors.phone) setFieldErrors((p) => ({ ...p, phone: '' }));
+            }}
+            placeholder="(555) 123-4567 — optional"
+            maxLength={25}
+            inputMode="tel"
           />
+          {fieldErrors.phone && (
+            <p id="member-phone-err" className="field-error" role="alert">{fieldErrors.phone}</p>
+          )}
         </div>
 
         <div>
-          <label className="section-label">
+          <label className="section-label" htmlFor="member-rate">
             Hourly Rate Override (optional)
           </label>
           <input
-            className="input-field"
+            id="member-rate"
+            aria-invalid={!!fieldErrors.hourlyRate || undefined}
+            aria-describedby={fieldErrors.hourlyRate ? 'member-rate-err' : undefined}
+            className={`input-field${fieldErrors.hourlyRate ? ' input-field--error' : ''}`}
             type="number"
             value={hourlyRate}
-            onChange={(e) => setHourlyRate(e.target.value)}
+            onChange={(e) => {
+              setHourlyRate(sanitizeMoney(e.target.value));
+              if (fieldErrors.hourlyRate) setFieldErrors((p) => ({ ...p, hourlyRate: '' }));
+            }}
             placeholder={`Default: $${defaultRate}/hr`}
             min="0"
+            max="2000"
+            step="0.01"
+            inputMode="decimal"
           />
+          {fieldErrors.hourlyRate && (
+            <p id="member-rate-err" className="field-error" role="alert">{fieldErrors.hourlyRate}</p>
+          )}
         </div>
 
         <div>
@@ -183,6 +238,7 @@ export default function AddMemberClient({ defaultRate }: Props) {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional internal notes"
             rows={3}
+            maxLength={1000}
             style={{ resize: 'vertical' }}
           />
         </div>

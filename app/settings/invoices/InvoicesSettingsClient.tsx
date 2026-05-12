@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
+import { sanitizeMoney, validateLateFee } from '@/lib/utils/validators';
 
 const INVOICE_METHODS = [
   {
@@ -53,9 +54,13 @@ export default function InvoicesSettingsClient({
   const [paymentTerms, setPaymentTerms] = useState(initialPaymentTerms);
   const [defaultInvoiceNote, setDefaultInvoiceNote] = useState(initialDefaultInvoiceNote);
   const [lateFeePercent, setLateFeePercent] = useState(String(initialLateFeePercent));
+  const [lateFeeError, setLateFeeError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    const lateErr = validateLateFee(lateFeePercent);
+    if (lateErr) { setLateFeeError(lateErr); return; }
+    setLateFeeError('');
     setSaving(true);
     try {
       const res = await fetch('/api/user/profile', {
@@ -145,18 +150,30 @@ export default function InvoicesSettingsClient({
 
         {/* Late fee */}
         <div className="settings-form-field" style={{ marginBottom: 0 }}>
-          <label className="settings-form-label">Late fee (%)</label>
+          <label className="settings-form-label" htmlFor="invoice-latefee">Late fee (%)</label>
           <div className="settings-input-wrap">
             <input
-              className="input-field input-field--suffix"
+              id="invoice-latefee"
+              aria-invalid={!!lateFeeError || undefined}
+              aria-describedby={lateFeeError ? 'invoice-latefee-err' : undefined}
+              className={`input-field input-field--suffix${lateFeeError ? ' input-field--error' : ''}`}
               type="number"
               min="0"
+              max="50"
+              step="0.1"
               value={lateFeePercent}
-              onChange={(e) => setLateFeePercent(e.target.value)}
+              onChange={(e) => {
+                setLateFeePercent(sanitizeMoney(e.target.value));
+                if (lateFeeError) setLateFeeError('');
+              }}
               placeholder="0"
+              inputMode="decimal"
             />
             <span className="settings-input-suffix">%</span>
           </div>
+          {lateFeeError && (
+            <p id="invoice-latefee-err" className="field-error" role="alert">{lateFeeError}</p>
+          )}
         </div>
       </div>
 

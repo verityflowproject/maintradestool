@@ -10,6 +10,12 @@ import { isAdminUnlockedFromRequest } from '@/lib/admin/adminUnlock';
 const BILLING_PASSTHROUGH =
   /^\/(dashboard|jobs|invoices|customers|calendar|requests|settings|billing-expired|help|legal|contact|feature-board|team|time)(\/|$|\?)/;
 
+// Feature routes that are soft-gated behind email verification.
+// Unverified manual-signup users are redirected to /dashboard?verify_required=1
+// which triggers the VerifyEmailModal on the client.
+const EMAIL_VERIFY_GATED =
+  /^\/(jobs\/new\/voice|jobs\/[^/]+\/voice)(\/|$|\?)/;
+
 // Owner-only routes that members should never access
 const OWNER_ONLY_PATHS =
   /^\/(settings\/billing|settings\/booking|settings\/business|settings\/rates)/;
@@ -94,6 +100,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // /verify pages are fully public — unauthenticated users must be able to redeem tokens
+  if (pathname.startsWith('/verify')) {
+    return NextResponse.next();
+  }
+
   if (isProtected && !token) {
     return NextResponse.redirect(new URL('/onboarding', req.url));
   }
@@ -122,6 +133,21 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Email-verification soft gate — redirect unverified owners away from
+  // voice-logging and invoice-related page routes. API-level checks are in the
+  // route handlers themselves; this only covers page navigations.
+  if (
+    isProtected &&
+    token &&
+    token.emailVerified === false &&
+    token.accountType !== 'member' &&
+    EMAIL_VERIFY_GATED.test(pathname)
+  ) {
+    return NextResponse.redirect(
+      new URL('/dashboard?verify_required=1', req.url),
+    );
+  }
+
   // Billing gate — redirect expired users away from write/feature routes.
   // Read-only data pages and settings are intentionally let through so users
   // can still see their data and reach the upgrade page.
@@ -138,6 +164,7 @@ export const config = {
   matcher: [
     '/(dashboard|jobs|customers|invoices|calendar|requests|settings|feature-board|team|time)(.*)?',
     '/onboarding',
+    '/verify/:path*',
     '/admin/:path*',
     '/api/admin/:path*',
   ],

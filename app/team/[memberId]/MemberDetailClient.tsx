@@ -7,6 +7,15 @@ import { ChevronLeft, Pencil, Archive, X, Mail, CheckCircle } from 'lucide-react
 import { TEAM_MEMBER_ROLES } from '@/lib/team/roles';
 import type { SerializedMember } from '../TeamListClient';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
+import {
+  sanitizePhone,
+  formatPhoneAsYouType,
+  sanitizeMoney,
+  validatePhone,
+  validateEmail,
+  validateHourlyRate,
+  collectErrors,
+} from '@/lib/utils/validators';
 
 const MEMBER_COLORS = [
   '#4A9EFF',
@@ -108,6 +117,7 @@ export default function MemberDetailClient({ member: initialMember, workload, re
     member.hourlyRate != null ? String(member.hourlyRate) : '',
   );
   const [editNotes, setEditNotes] = useState(member.notes);
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
 
   function openEdit() {
     setEditName(member.name);
@@ -118,6 +128,7 @@ export default function MemberDetailClient({ member: initialMember, workload, re
     setEditHourlyRate(member.hourlyRate != null ? String(member.hourlyRate) : '');
     setEditNotes(member.notes);
     setEditError(null);
+    setEditFieldErrors({});
     setEditOpen(true);
   }
 
@@ -126,6 +137,16 @@ export default function MemberDetailClient({ member: initialMember, workload, re
       setEditError('Name is required.');
       return;
     }
+    const errs = collectErrors({
+      phone: validatePhone(editPhone),
+      email: validateEmail(editEmail),
+      hourlyRate: validateHourlyRate(editHourlyRate),
+    });
+    if (errs) {
+      setEditFieldErrors(errs);
+      return;
+    }
+    setEditFieldErrors({});
     setSaving(true);
     setEditError(null);
     try {
@@ -540,35 +561,64 @@ export default function MemberDetailClient({ member: initialMember, workload, re
               <div>
                 <label className="section-label">Email</label>
                 <input
-                  className="input-field"
+                  className={`input-field${editFieldErrors.email ? ' input-field--error' : ''}`}
                   type="email"
                   value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEditEmail(e.target.value);
+                    if (editFieldErrors.email) setEditFieldErrors((p) => ({ ...p, email: '' }));
+                  }}
                   placeholder="email@example.com"
+                  maxLength={254}
+                  inputMode="email"
                 />
+                {editFieldErrors.email && <p className="field-error">{editFieldErrors.email}</p>}
               </div>
 
               <div>
-                <label className="section-label">Phone</label>
+                <label className="section-label" htmlFor="edit-member-phone">Phone</label>
                 <input
-                  className="input-field"
+                  id="edit-member-phone"
+                  aria-invalid={!!editFieldErrors.phone || undefined}
+                  aria-describedby={editFieldErrors.phone ? 'edit-member-phone-err' : undefined}
+                  className={`input-field${editFieldErrors.phone ? ' input-field--error' : ''}`}
                   type="tel"
                   value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
-                  placeholder="(555) 000-0000"
+                  onChange={(e) => {
+                    setEditPhone(formatPhoneAsYouType(sanitizePhone(e.target.value)));
+                    if (editFieldErrors.phone) setEditFieldErrors((p) => ({ ...p, phone: '' }));
+                  }}
+                  placeholder="(555) 123-4567"
+                  maxLength={25}
+                  inputMode="tel"
                 />
+                {editFieldErrors.phone && (
+                  <p id="edit-member-phone-err" className="field-error" role="alert">{editFieldErrors.phone}</p>
+                )}
               </div>
 
               <div>
-                <label className="section-label">Hourly Rate Override (optional)</label>
+                <label className="section-label" htmlFor="edit-member-rate">Hourly Rate Override (optional)</label>
                 <input
-                  className="input-field"
+                  id="edit-member-rate"
+                  aria-invalid={!!editFieldErrors.hourlyRate || undefined}
+                  aria-describedby={editFieldErrors.hourlyRate ? 'edit-member-rate-err' : undefined}
+                  className={`input-field${editFieldErrors.hourlyRate ? ' input-field--error' : ''}`}
                   type="number"
                   value={editHourlyRate}
-                  onChange={(e) => setEditHourlyRate(e.target.value)}
+                  onChange={(e) => {
+                    setEditHourlyRate(sanitizeMoney(e.target.value));
+                    if (editFieldErrors.hourlyRate) setEditFieldErrors((p) => ({ ...p, hourlyRate: '' }));
+                  }}
                   placeholder="Inherits owner default"
                   min="0"
+                  max="2000"
+                  step="0.01"
+                  inputMode="decimal"
                 />
+                {editFieldErrors.hourlyRate && (
+                  <p id="edit-member-rate-err" className="field-error" role="alert">{editFieldErrors.hourlyRate}</p>
+                )}
               </div>
 
               <div>

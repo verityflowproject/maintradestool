@@ -5,6 +5,7 @@ import User from '@/lib/models/User';
 import ContactSubmission, { ContactType } from '@/lib/models/ContactSubmission';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { contactConfirmationTemplate, contactAdminNotificationTemplate } from '@/lib/email/templates';
+import { validateFreeTextLong, validateMaxLength, stripNullBytes } from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,10 +41,26 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'Description is required' }, { status: 400 });
   }
 
+  // Length guards on all text fields
+  const descLenErr = validateFreeTextLong(description, 'Description');
+  if (descLenErr) return NextResponse.json({ error: descLenErr }, { status: 400 });
+
+  if (title) {
+    const titleLenErr = validateMaxLength(title, 200, 'Title');
+    if (titleLenErr) return NextResponse.json({ error: titleLenErr }, { status: 400 });
+  }
+  if (problemSolved) {
+    const psLenErr = validateFreeTextLong(problemSolved, 'Problem solved');
+    if (psLenErr) return NextResponse.json({ error: psLenErr }, { status: 400 });
+  }
+  if (stepsToReproduce) {
+    const stepsLenErr = validateFreeTextLong(stepsToReproduce, 'Steps to reproduce');
+    if (stepsLenErr) return NextResponse.json({ error: stepsLenErr }, { status: 400 });
+  }
+
   // Per-type validation
   if (type === 'feature_request') {
     if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
-    if (title.length > 100) return NextResponse.json({ error: 'Title must be 100 chars or fewer' }, { status: 400 });
     if (!problemSolved?.trim()) return NextResponse.json({ error: 'Problem solved is required' }, { status: 400 });
   }
   if (type === 'bug_report' && !title?.trim()) {
@@ -87,9 +104,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     userFirstName,
     userBusinessName,
     type,
-    title: title?.trim() || undefined,
-    description: description.trim(),
-    problemSolved: problemSolved?.trim() || undefined,
+    title: title ? stripNullBytes(title.trim()) : undefined,
+    description: stripNullBytes(description.trim()),
+    problemSolved: problemSolved ? stripNullBytes(problemSolved.trim()) : undefined,
     priority: priorityValue,
     stepsToReproduce: stepsToReproduce?.trim() || undefined,
     willingToPay: willingToPay ?? false,

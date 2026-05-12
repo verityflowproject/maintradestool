@@ -6,6 +6,13 @@ import { deriveFullName } from '@/lib/utils/customerName';
 import { requireCapability } from '@/lib/requirePlan';
 import { requirePerm } from '@/lib/auth/permissions';
 import { effectiveOwnerId } from '@/lib/auth/scope';
+import {
+  validatePhone,
+  validateEmail,
+  validatePersonName,
+  validateBusinessName,
+  validateAddress,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -70,7 +77,10 @@ export async function POST(req: Request) {
   } | null;
 
   const firstName = body?.firstName?.trim() ?? '';
+  const lastName = body?.lastName?.trim() ?? '';
   const businessName = body?.businessName?.trim() ?? '';
+  const phone = body?.phone?.trim() ?? '';
+  const email = body?.email?.trim().toLowerCase() ?? '';
 
   if (!firstName && !businessName) {
     return NextResponse.json(
@@ -79,6 +89,19 @@ export async function POST(req: Request) {
     );
   }
 
+  const nameErr = validatePersonName(firstName, 'First name');
+  if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
+  const lastNameErr = validatePersonName(lastName, 'Last name');
+  if (lastNameErr) return NextResponse.json({ error: lastNameErr }, { status: 400 });
+  const bizErr = validateBusinessName(businessName);
+  if (bizErr) return NextResponse.json({ error: bizErr }, { status: 400 });
+  const phoneErr = validatePhone(phone);
+  if (phoneErr) return NextResponse.json({ error: phoneErr }, { status: 400 });
+  const emailErr = validateEmail(email);
+  if (emailErr) return NextResponse.json({ error: emailErr }, { status: 400 });
+  const addressErr = validateAddress(body?.address?.trim() ?? '');
+  if (addressErr) return NextResponse.json({ error: addressErr }, { status: 400 });
+
   await dbConnect();
   const ownerId = effectiveOwnerId(session!);
 
@@ -86,10 +109,10 @@ export async function POST(req: Request) {
     const doc = await Customer.create({
       userId: ownerId,
       firstName,
-      lastName: body?.lastName?.trim() ?? '',
+      lastName,
       businessName,
-      phone: body?.phone?.trim() ?? '',
-      email: body?.email?.trim().toLowerCase() ?? '',
+      phone,
+      email,
       address: body?.address?.trim() ?? '',
     });
 

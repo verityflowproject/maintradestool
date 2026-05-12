@@ -60,6 +60,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       await dbConnect();
       const existing = await User.findOne({ email });
 
+      // Google's verification supersedes any pending manual confirmation
+      if (existing && !existing.emailVerified) {
+        existing.emailVerified = true;
+        existing.emailVerifiedAt = existing.emailVerifiedAt ?? new Date();
+        existing.emailVerificationTokenHash = null;
+        existing.emailVerificationExpiresAt = null;
+        await existing.save();
+      }
+
       if (!existing) {
         const googleProfile = profile as
           | { given_name?: string; name?: string }
@@ -86,6 +95,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             parentOwnerId: pendingInvite.ownerUserId,
             linkedTeamMemberId: pendingInvite._id,
             onboardingCompleted: true,
+            // Google verified this email; clicking the invite link was additional proof
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
           });
           pendingInvite.linkedUserId = memberUser._id;
           pendingInvite.inviteAcceptedAt = new Date();
@@ -128,6 +140,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           plan: 'trial',
           trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           onboardingCompleted: false,
+          // Google has already verified this email address
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
         });
 
         sendEmail({ to: email, ...welcomeTemplate(newUser) }).catch(console.error);
@@ -139,58 +154,65 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, trigger }) {
       // Re-fetch from DB on first sign-in and whenever updateSession() is called
       if (user || trigger === 'signIn' || trigger === 'update') {
-        const email =
+        await dbConnect();
+
+        // Prefer ID lookup so the token stays valid after an email change.
+        // Fall back to email only on the very first sign-in before token.id exists.
+        const tokenId = (token.id as string | undefined) ?? (user?.id as string | undefined);
+        const lookupEmail =
           (user?.email as string | undefined) ??
           (token.email as string | undefined);
 
-        if (email) {
-          await dbConnect();
-          const dbUser = await User.findOne({ email: email.toLowerCase() });
+        const dbUser = tokenId
+          ? await User.findById(tokenId)
+          : lookupEmail
+          ? await User.findOne({ email: lookupEmail.toLowerCase() })
+          : null;
 
-          if (dbUser) {
-            token.id = dbUser._id.toString();
-            token.email = dbUser.email;
-            token.firstName = dbUser.firstName;
-            token.businessName = dbUser.businessName;
-            token.plan = dbUser.plan;
-            token.onboardingCompleted = dbUser.onboardingCompleted;
-            token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
-            token.subscriptionStatus = dbUser.subscriptionStatus ?? null;
-            token.subscriptionEndsAt = dbUser.subscriptionEndsAt?.toISOString() ?? null;
-            token.teamSize = dbUser.teamSize ?? '';
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+          token.email = dbUser.email;
+          token.firstName = dbUser.firstName;
+          token.businessName = dbUser.businessName;
+          token.plan = dbUser.plan;
+          token.onboardingCompleted = dbUser.onboardingCompleted;
+          token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
+          token.subscriptionStatus = dbUser.subscriptionStatus ?? null;
+          token.subscriptionEndsAt = dbUser.subscriptionEndsAt?.toISOString() ?? null;
+          token.teamSize = dbUser.teamSize ?? '';
+          token.emailVerified = dbUser.emailVerified ?? false;
 
-            // v2: identity fields
-            token.parentOwnerId = dbUser.parentOwnerId ? String(dbUser.parentOwnerId) : null;
-            token.linkedTeamMemberId = dbUser.linkedTeamMemberId ? String(dbUser.linkedTeamMemberId) : null;
-            token.accountType = dbUser.parentOwnerId ? 'member' : 'owner';
-            token.effectiveOwnerId = dbUser.parentOwnerId
-              ? String(dbUser.parentOwnerId)
-              : String(dbUser._id);
+          // v2: identity fields
+          token.parentOwnerId = dbUser.parentOwnerId ? String(dbUser.parentOwnerId) : null;
+          token.linkedTeamMemberId = dbUser.linkedTeamMemberId ? String(dbUser.linkedTeamMemberId) : null;
+          token.accountType = dbUser.parentOwnerId ? 'member' : 'owner';
+          token.effectiveOwnerId = dbUser.parentOwnerId
+            ? String(dbUser.parentOwnerId)
+            : String(dbUser._id);
 
-            if (dbUser.parentOwnerId && dbUser.linkedTeamMemberId) {
-              const TeamMember = (await import('@/lib/models/TeamMember')).default;
-              const UserModel = (await import('@/lib/models/User')).default;
+          if (dbUser.parentOwnerId && dbUser.linkedTeamMemberId) {
+            const TeamMember = (await import('@/lib/models/TeamMember')).default;
+            const UserModel = (await import('@/lib/models/User')).default;
 
-              // Orphan defense: if the parent owner no longer exists, treat member as inactive.
-              // Also surface the *owner's* teamSize on the member's session so that
-              // `hasTeam`-gated UI (BottomNav Team tab, JobForm assignment chips) renders
-              // correctly for manager/office members who belong to a team account.
-              const owner = await UserModel.findById(dbUser.parentOwnerId)
-                .select('teamSize')
-                .lean<{ teamSize?: string } | null>();
-              if (!owner) {
-                token.memberActive = false;
-                token.role = null;
-              } else {
-                token.teamSize = owner.teamSize ?? '';
-                const tm = await TeamMember.findById(dbUser.linkedTeamMemberId).select('role active').lean();
-                token.role = (tm as { role?: string; active?: boolean } | null)?.role ?? null;
-                token.memberActive = (tm as { role?: string; active?: boolean } | null)?.active ?? false;
-              }
+            // Orphan defense: if the parent owner no longer exists, treat member as inactive.
+            // Also surface the *owner's* teamSize on the member's session so that
+            // `hasTeam`-gated UI (BottomNav Team tab, JobForm assignment chips) renders
+            // correctly for manager/office members who belong to a team account.
+            const owner = await UserModel.findById(dbUser.parentOwnerId)
+              .select('teamSize')
+              .lean<{ teamSize?: string } | null>();
+            if (!owner) {
+              token.memberActive = false;
+              token.role = null;
             } else {
-              token.role = 'owner';
-              token.memberActive = true;
+              token.teamSize = owner.teamSize ?? '';
+              const tm = await TeamMember.findById(dbUser.linkedTeamMemberId).select('role active').lean();
+              token.role = (tm as { role?: string; active?: boolean } | null)?.role ?? null;
+              token.memberActive = (tm as { role?: string; active?: boolean } | null)?.active ?? false;
             }
+          } else {
+            token.role = 'owner';
+            token.memberActive = true;
           }
         }
       }
@@ -215,6 +237,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.effectiveOwnerId = (token.effectiveOwnerId as string | undefined) ?? (token.id as string);
       session.user.role = ((token.role as string | null | undefined) ?? null) as import('@/lib/team/roles').TeamMemberRole | null;
       session.user.memberActive = (token.memberActive as boolean | undefined) ?? true;
+      session.user.emailVerified = (token.emailVerified as boolean | undefined) ?? false;
 
       return session;
     },

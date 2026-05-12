@@ -13,6 +13,21 @@ import { firstJobTemplate } from '@/lib/email/templates';
 import { requirePerm } from '@/lib/auth/permissions';
 import { effectiveOwnerId, memberId } from '@/lib/auth/scope';
 import { jobReadFilter } from '@/lib/auth/jobScope';
+import {
+  validateHourlyRate,
+  validateHours,
+  validateMarkup,
+  validateTaxRate,
+  validateLineItemCost,
+  validateQty,
+  validateJobDate,
+  validateFreeTextLong,
+  validateMaxLength,
+  validatePhone,
+  validateEmail,
+  stripNullBytes,
+  validationError,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -107,6 +122,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Title required' }, { status: 400 });
   }
 
+  // ── Validate numeric / money fields ─────────────────────────────────
+  const titleErr = validateMaxLength(String(body.title ?? '').trim(), 200, 'Title');
+  if (titleErr) return NextResponse.json(validationError('title', titleErr), { status: 400 });
+
+  const descErr = validateFreeTextLong(String(body.description ?? ''), 'Description');
+  if (descErr) return NextResponse.json(validationError('description', descErr), { status: 400 });
+
+  const notesErr = validateFreeTextLong(String(body.internalNotes ?? ''), 'Internal notes');
+  if (notesErr) return NextResponse.json(validationError('internalNotes', notesErr), { status: 400 });
+
+  const laborHoursErr = validateHours(body.laborHours as string | number);
+  if (laborHoursErr) return NextResponse.json(validationError('laborHours', laborHoursErr), { status: 400 });
+
+  const laborRateErr = validateHourlyRate(body.laborRate as string | number);
+  if (laborRateErr) return NextResponse.json(validationError('laborRate', laborRateErr), { status: 400 });
+
+  const taxRateErr = validateTaxRate(body.taxRate as string | number);
+  if (taxRateErr) return NextResponse.json(validationError('taxRate', taxRateErr), { status: 400 });
+
+  const dateErr = body.scheduledDate ? validateJobDate(String(body.scheduledDate)) : null;
+  if (dateErr) return NextResponse.json(validationError('scheduledDate', dateErr), { status: 400 });
+
+  const customerPhoneErr = body.customerPhone ? validatePhone(String(body.customerPhone)) : null;
+  if (customerPhoneErr) return NextResponse.json(validationError('customerPhone', customerPhoneErr), { status: 400 });
+
+  const customerEmailErr = body.customerEmail ? validateEmail(String(body.customerEmail)) : null;
+  if (customerEmailErr) return NextResponse.json(validationError('customerEmail', customerEmailErr), { status: 400 });
+
+  if (Array.isArray(body.parts)) {
+    for (let i = 0; i < (body.parts as PartBody[]).length; i++) {
+      const p = (body.parts as PartBody[])[i];
+      const qtyErr = validateQty(p.quantity as string | number);
+      if (qtyErr) return NextResponse.json(validationError(`parts[${i}].quantity`, qtyErr), { status: 400 });
+      const costErr = validateLineItemCost(p.unitCost as string | number);
+      if (costErr) return NextResponse.json(validationError(`parts[${i}].unitCost`, costErr), { status: 400 });
+      const mkupErr = validateMarkup(p.markup as string | number);
+      if (mkupErr) return NextResponse.json(validationError(`parts[${i}].markup`, mkupErr), { status: 400 });
+    }
+  }
+
   await dbConnect();
 
   // ── Resolve customer ──────────────────────────────────────────────
@@ -155,8 +210,8 @@ export async function POST(req: Request) {
       customerName: (body.customerName as string) ?? '',
       customerPhone: (body.customerPhone as string) ?? '',
       customerAddress: (body.customerAddress as string) ?? '',
-      title: (body.title as string).trim(),
-      description: (body.description as string) ?? '',
+      title: stripNullBytes((body.title as string).trim()),
+      description: stripNullBytes((body.description as string) ?? ''),
       trade: '',
       jobType: (body.jobType as string) ?? 'residential',
       status: (body.status as string) === 'complete' ? 'complete' : 'draft',

@@ -148,3 +148,36 @@ The daily cron at `/api/cron/daily` (called via Vercel Cron or external schedule
 7. Promo reminder email (day 5–7 of trial — includes PROMO_CODE if set)
 
 Set up in `vercel.json` or configure in the Vercel dashboard under **Cron Jobs**.
+
+---
+
+## One-time data migrations
+
+### Phone number E.164 migration
+
+Migrates all existing phone numbers in the `customers`, `teammembers`, and `users` collections
+to [E.164 format](https://en.wikipedia.org/wiki/E.164) (e.g. `+15551234567`).
+
+- Phones already in valid E.164 format are left untouched.
+- Parseable phones are updated to E.164 in-place.
+- Unparseable phones are copied to a `phoneOriginal` field for manual review; the original `phone` value is preserved.
+- After the migration, inspect records where `phoneOriginal` exists to manually correct them.
+
+**Run once on the production database:**
+
+```bash
+MONGODB_URI=your_mongodb_connection_string npx ts-node --project tsconfig.json scripts/migrate-phones.ts
+```
+
+The script is idempotent — running it a second time is safe (already-valid E.164 numbers are skipped).
+
+### Email verification backfill
+
+Run this **before** deploying the email-confirmation feature. It marks every existing user as
+`emailVerified: true` so current accounts are not interrupted.
+
+```bash
+MONGODB_URI=your_mongodb_connection_string npx ts-node --project tsconfig.json scripts/backfill-email-verified.ts
+```
+
+The script is idempotent — documents that already have `emailVerified` are counted but not re-written.

@@ -4,6 +4,14 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
+import {
+  sanitizePhone,
+  formatPhoneAsYouType,
+  validatePhone,
+  validateEmail,
+  validateBusinessName,
+  collectErrors,
+} from '@/lib/utils/validators';
 
 interface Props {
   initialBusinessName: string;
@@ -25,9 +33,20 @@ export default function BusinessSettingsClient({
   const [region, setRegion] = useState(initialRegion);
   const [phone, setPhone] = useState(initialPhone);
   const [businessEmail, setBusinessEmail] = useState(initialBusinessEmail);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const handleSave = useCallback(async () => {
+    const errs = collectErrors({
+      businessName: validateBusinessName(businessName),
+      phone: validatePhone(phone),
+      businessEmail: validateEmail(businessEmail),
+    });
+    if (errs) {
+      setFieldErrors(errs);
+      return;
+    }
+    setFieldErrors({});
     setSaving(true);
     try {
       const res = await fetch('/api/user/profile', {
@@ -66,11 +85,16 @@ export default function BusinessSettingsClient({
         <div className="settings-form-field">
           <label className="settings-form-label">Business name</label>
           <input
-            className="input-field"
+            className={`input-field${fieldErrors.businessName ? ' input-field--error' : ''}`}
             value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
+            onChange={(e) => {
+              setBusinessName(e.target.value);
+              if (fieldErrors.businessName) setFieldErrors((p) => ({ ...p, businessName: '' }));
+            }}
             placeholder="Your business name"
+            maxLength={100}
           />
+          {fieldErrors.businessName && <p className="field-error">{fieldErrors.businessName}</p>}
         </div>
 
         <div className="settings-form-field">
@@ -80,29 +104,52 @@ export default function BusinessSettingsClient({
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             placeholder="e.g. Texas, CA, NSW"
+            maxLength={100}
           />
         </div>
 
         <div className="settings-form-field">
-          <label className="settings-form-label">Phone</label>
+          <label className="settings-form-label" htmlFor="biz-phone">Phone</label>
           <input
-            className="input-field"
+            id="biz-phone"
+            aria-invalid={!!fieldErrors.phone || undefined}
+            aria-describedby={fieldErrors.phone ? 'biz-phone-err' : undefined}
+            className={`input-field${fieldErrors.phone ? ' input-field--error' : ''}`}
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Your business phone number"
+            onChange={(e) => {
+              setPhone(formatPhoneAsYouType(sanitizePhone(e.target.value)));
+              if (fieldErrors.phone) setFieldErrors((p) => ({ ...p, phone: '' }));
+            }}
+            placeholder="(555) 123-4567"
+            maxLength={25}
+            inputMode="tel"
           />
+          {fieldErrors.phone && (
+            <p id="biz-phone-err" className="field-error" role="alert">{fieldErrors.phone}</p>
+          )}
         </div>
 
         <div className="settings-form-field" style={{ marginBottom: 0 }}>
-          <label className="settings-form-label">Email (for customers)</label>
+          <label className="settings-form-label" htmlFor="biz-email">Email (for customers)</label>
           <input
-            className="input-field"
+            id="biz-email"
+            aria-invalid={!!fieldErrors.businessEmail || undefined}
+            aria-describedby={fieldErrors.businessEmail ? 'biz-email-err' : undefined}
+            className={`input-field${fieldErrors.businessEmail ? ' input-field--error' : ''}`}
             type="email"
             value={businessEmail}
-            onChange={(e) => setBusinessEmail(e.target.value)}
+            onChange={(e) => {
+              setBusinessEmail(e.target.value);
+              if (fieldErrors.businessEmail) setFieldErrors((p) => ({ ...p, businessEmail: '' }));
+            }}
             placeholder="billing@yourbusiness.com"
+            maxLength={254}
+            inputMode="email"
           />
+          {fieldErrors.businessEmail && (
+            <p id="biz-email-err" className="field-error" role="alert">{fieldErrors.businessEmail}</p>
+          )}
         </div>
       </div>
 

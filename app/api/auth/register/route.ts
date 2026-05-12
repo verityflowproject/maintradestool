@@ -4,7 +4,19 @@ import { dbConnect } from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { welcomeTemplate, promoTemplate } from '@/lib/email/templates';
+import {
+  generateVerificationToken,
+  sendVerificationEmail,
+} from '@/lib/email/emailVerification';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import {
+  validateRequiredEmail,
+  validatePersonName,
+  validateBusinessName,
+  validateHourlyRate,
+  validateMarkup,
+  normalizeEmail,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -62,8 +74,14 @@ export async function POST(req: Request) {
     }
   }
 
-  const email = (body.email as string).trim().toLowerCase();
+  const email = normalizeEmail(body.email as string);
   const password = body.password as string;
+
+  // Validate email format
+  const emailFormatErr = validateRequiredEmail(email);
+  if (emailFormatErr) {
+    return NextResponse.json({ error: emailFormatErr }, { status: 400 });
+  }
 
   if (!/^(?=.*[A-Za-z])(?=.*\d)[\S]{8,72}$/.test(password)) {
     return NextResponse.json(
@@ -71,8 +89,23 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+
   const firstName = body.firstName as string;
   const businessName = body.businessName as string;
+
+  // Validate names
+  const firstNameErr = validatePersonName(firstName, 'First name');
+  if (firstNameErr) return NextResponse.json({ error: firstNameErr }, { status: 400 });
+
+  const businessNameErr = validateBusinessName(businessName);
+  if (businessNameErr) return NextResponse.json({ error: businessNameErr }, { status: 400 });
+
+  // Validate numeric onboarding fields
+  const hourlyRateErr = validateHourlyRate(body.hourlyRate as number);
+  if (hourlyRateErr) return NextResponse.json({ error: hourlyRateErr }, { status: 400 });
+
+  const partsMarkupErr = validateMarkup(body.partsMarkup as number);
+  if (partsMarkupErr) return NextResponse.json({ error: partsMarkupErr }, { status: 400 });
   const trade = body.trade as string;
   const teamSize = body.teamSize as string;
   const jobType = body.jobType as string;
@@ -117,8 +150,18 @@ export async function POST(req: Request) {
       region,
       invoiceMethod,
       onboardingCompleted: true,
+      // Manual signups start unverified; trial countdown is paused until confirmed
+      emailVerified: false,
+      // Trial window is opened fresh when the user confirms their email.
+      // We set a generous default here; the cron / verification path resets it.
       trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
     });
+
+    // Issue verification token and send email (fires before welcome so it
+    // arrives first in the inbox; the two sends are intentionally separate).
+    const rawToken = await generateVerificationToken(user);
+    await user.save();
+    sendVerificationEmail(user, rawToken).catch(console.error);
 
     sendEmail({ to: user.email, ...welcomeTemplate(user) }).catch(console.error);
     // Promo email sent after a short delay so it doesn't arrive simultaneously with welcome

@@ -6,6 +6,16 @@ import { useSession } from 'next-auth/react';
 import { ChevronLeft, ChevronDown, ChevronUp, Trash2, Wand2 } from 'lucide-react';
 import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue';
 import { useToast } from '@/components/Toast/ToastProvider';
+import {
+  sanitizePhone,
+  validateEmail,
+  validateHourlyRate,
+  validateHours,
+  validatePrice,
+  validateMarkup,
+  validateTaxRate,
+  validateQty,
+} from '@/lib/utils/validators';
 
 interface JobPart {
   name: string;
@@ -287,11 +297,25 @@ export default function JobForm({
       shake();
       return;
     }
-    const emptyPartIdx = form.parts.findIndex((p) => !p.name.trim());
-    if (emptyPartIdx !== -1) {
-      setSubmitError(`Part #${emptyPartIdx + 1} is missing a name.`);
-      shake();
-      return;
+    // Validate customer email if provided
+    const emailErr = validateEmail(form.customerEmail);
+    if (emailErr) { setSubmitError(emailErr); shake(); return; }
+    // Validate numeric fields
+    const laborHoursErr = validateHours(form.laborHours);
+    if (laborHoursErr) { setSubmitError(laborHoursErr); shake(); return; }
+    const laborRateErr = validateHourlyRate(form.laborRate);
+    if (laborRateErr) { setSubmitError(laborRateErr); shake(); return; }
+    const taxRateErr = validateTaxRate(form.taxRate);
+    if (taxRateErr) { setSubmitError(taxRateErr); shake(); return; }
+    for (let i = 0; i < form.parts.length; i++) {
+      const p = form.parts[i];
+      if (!p.name.trim()) { setSubmitError(`Part #${i + 1} is missing a name.`); shake(); return; }
+      const qtyErr = validateQty(p.quantity);
+      if (qtyErr) { setSubmitError(`Part #${i + 1}: ${qtyErr}`); shake(); return; }
+      const costErr = validatePrice(p.unitCost, 'Unit cost');
+      if (costErr) { setSubmitError(`Part #${i + 1}: ${costErr}`); shake(); return; }
+      const markupErr = validateMarkup(p.markup);
+      if (markupErr) { setSubmitError(`Part #${i + 1}: ${markupErr}`); shake(); return; }
     }
     if (action === 'complete') {
       const hasLabor = Number(form.laborHours) > 0 && Number(form.laborRate) > 0;
@@ -500,10 +524,11 @@ export default function JobForm({
             placeholder="Phone  e.g. 817-555-0192"
             value={form.customerPhone}
             onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9+\-().\s]/g, '');
-              patchForm({ customerPhone: val, customerId: null });
+              patchForm({ customerPhone: sanitizePhone(e.target.value), customerId: null });
               markEdited('customerPhone');
             }}
+            maxLength={20}
+            inputMode="tel"
           />
           <input
             className={inputCls('input-field job-form-customer-field job-form-customer-field--last', 'customerAddress', uncertainFields, editedFields)}
@@ -537,6 +562,8 @@ export default function JobForm({
               placeholder="email@example.com"
               value={form.customerEmail}
               onChange={(e) => patchForm({ customerEmail: e.target.value })}
+              maxLength={254}
+              inputMode="email"
             />
             <button
               type="button"
@@ -676,6 +703,7 @@ export default function JobForm({
               className={inputCls('input-field', 'laborHours', uncertainFields, editedFields)}
               type="number"
               min={0}
+              max={9999}
               step={0.5}
               placeholder="Hours  e.g. 2.5"
               value={form.laborHours}
@@ -683,17 +711,20 @@ export default function JobForm({
                 patchForm({ laborHours: e.target.value === '' ? '' : Number(e.target.value) });
                 markEdited('laborHours');
               }}
+              inputMode="decimal"
             />
             <input
               className={inputCls('input-field', 'laborRate', uncertainFields, editedFields)}
               type="number"
               min={0}
+              max={9999}
               placeholder="Rate $"
               value={form.laborRate}
               onChange={(e) => {
                 patchForm({ laborRate: e.target.value === '' ? '' : Number(e.target.value) });
                 markEdited('laborRate');
               }}
+              inputMode="decimal"
             />
           </div>
           {laborTotal > 0 && (
@@ -721,6 +752,7 @@ export default function JobForm({
                 className="input-field part-qty"
                 type="number"
                 min={0}
+                max={99999}
                 placeholder="Qty"
                 value={p.quantity}
                 onChange={(e) => {
@@ -728,11 +760,13 @@ export default function JobForm({
                   const n = Number(e.target.value);
                   if (!isNaN(n) && n >= 0) updatePart(i, { quantity: n });
                 }}
+                inputMode="decimal"
               />
               <input
                 className="input-field part-cost"
                 type="number"
                 min={0}
+                max={999999}
                 placeholder="Cost $"
                 value={p.unitCost}
                 onChange={(e) => {
@@ -740,11 +774,13 @@ export default function JobForm({
                   const n = Number(e.target.value);
                   if (!isNaN(n) && n >= 0) updatePart(i, { unitCost: n });
                 }}
+                inputMode="decimal"
               />
               <input
                 className="input-field part-markup"
                 type="number"
                 min={0}
+                max={999}
                 placeholder="Markup %"
                 value={p.markup}
                 onChange={(e) => {
@@ -752,6 +788,7 @@ export default function JobForm({
                   const n = Number(e.target.value);
                   if (!isNaN(n) && n >= 0) updatePart(i, { markup: n });
                 }}
+                inputMode="decimal"
               />
               <span className="money-display part-total">
                 ${fmt(calcPartTotal(p))}
@@ -865,12 +902,15 @@ export default function JobForm({
                 className={`${inputCls('input-field', 'taxRate', uncertainFields, editedFields)} tax-input`}
                 type="number"
                 min={0}
+                max={30}
+                step={0.1}
                 placeholder="0"
                 value={form.taxRate}
                 onChange={(e) => {
                   patchForm({ taxRate: e.target.value === '' ? '' : Number(e.target.value) });
                   markEdited('taxRate');
                 }}
+                inputMode="decimal"
               />
               <span className="tax-suffix">%</span>
             </div>

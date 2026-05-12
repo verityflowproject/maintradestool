@@ -18,6 +18,8 @@
     "@types/nodemailer": "^8.0.0",
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.3",
+    "disposable-email-domains": "^1.0.62",
+    "libphonenumber-js": "^1.13.1",
     "lucide-react": "^0.454.0",
     "mongoose": "^9.4.1",
     "next": "14.2.15",

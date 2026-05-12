@@ -7,6 +7,14 @@ import TimeEntry from '@/lib/models/TimeEntry';
 import Job from '@/lib/models/Job';
 import { requirePerm } from '@/lib/auth/permissions';
 import { effectiveOwnerId } from '@/lib/auth/scope';
+import {
+  validatePhone,
+  validateEmail,
+  validateHourlyRate,
+  validatePersonName,
+  validateFreeTextShort,
+  stripNullBytes,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -61,18 +69,42 @@ export async function PATCH(
 
   if (!member) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Whitelist editable fields
-  if ('name' in body) member.name = String(body.name ?? '').trim();
-  if ('email' in body) member.email = String(body.email ?? '').trim().toLowerCase();
-  if ('phone' in body) member.phone = String(body.phone ?? '').trim();
+  // Whitelist editable fields with validation
+  if ('name' in body) {
+    const nameVal = String(body.name ?? '').trim();
+    if (!nameVal) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    const nameErr = validatePersonName(nameVal, 'Name');
+    if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
+    member.name = nameVal;
+  }
+  if ('email' in body) {
+    const emailVal = String(body.email ?? '').trim().toLowerCase();
+    const emailErr = validateEmail(emailVal);
+    if (emailErr) return NextResponse.json({ error: emailErr }, { status: 400 });
+    member.email = emailVal;
+  }
+  if ('phone' in body) {
+    const phoneVal = String(body.phone ?? '').trim();
+    const phoneErr = validatePhone(phoneVal);
+    if (phoneErr) return NextResponse.json({ error: phoneErr }, { status: 400 });
+    member.phone = phoneVal;
+  }
   if ('role' in body) member.role = body.role as typeof member.role;
   if ('hourlyRate' in body) {
-    member.hourlyRate = body.hourlyRate == null || body.hourlyRate === '' ? null : Number(body.hourlyRate);
+    const rateVal = body.hourlyRate == null || body.hourlyRate === '' ? '' : String(body.hourlyRate);
+    const rateErr = validateHourlyRate(rateVal);
+    if (rateErr) return NextResponse.json({ error: rateErr }, { status: 400 });
+    member.hourlyRate = rateVal === '' ? null : Number(rateVal);
   }
   if ('color' in body) member.color = String(body.color ?? '#4A9EFF');
   const wasActive = member.active;
   if ('active' in body) member.active = Boolean(body.active);
-  if ('notes' in body) member.notes = String(body.notes ?? '');
+  if ('notes' in body) {
+    const notesVal = String(body.notes ?? '');
+    const notesErr = validateFreeTextShort(notesVal, 'Notes');
+    if (notesErr) return NextResponse.json({ error: notesErr }, { status: 400 });
+    member.notes = stripNullBytes(notesVal);
+  }
 
   await member.save();
 

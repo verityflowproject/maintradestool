@@ -7,6 +7,15 @@ import Job from '@/lib/models/Job';
 import { deriveFullName } from '@/lib/utils/customerName';
 import { requirePerm } from '@/lib/auth/permissions';
 import { effectiveOwnerId } from '@/lib/auth/scope';
+import {
+  validatePhone,
+  validateEmail,
+  validatePersonName,
+  validateBusinessName,
+  validateAddress,
+  validateFreeTextLong,
+  stripNullBytes,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -84,6 +93,37 @@ export async function PATCH(
 
   if (Object.keys($set).length === 1) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+  }
+
+  // Format validation
+  if ('firstName' in $set) {
+    const err = validatePersonName($set.firstName as string, 'First name');
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+  }
+  if ('lastName' in $set) {
+    const err = validatePersonName($set.lastName as string, 'Last name');
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+  }
+  if ('businessName' in $set) {
+    const err = validateBusinessName($set.businessName as string);
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+  }
+  if ('phone' in $set) {
+    const err = validatePhone($set.phone as string);
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+  }
+  if ('email' in $set) {
+    const err = validateEmail($set.email as string);
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+  }
+  if ('address' in $set) {
+    const err = validateAddress($set.address as string);
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+  }
+  if ('notes' in $set) {
+    const err = validateFreeTextLong($set.notes as string, 'Notes');
+    if (err) return NextResponse.json({ error: err }, { status: 400 });
+    $set.notes = stripNullBytes($set.notes as string);
   }
 
   await dbConnect();

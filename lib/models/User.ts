@@ -31,9 +31,22 @@ export interface ITrialWarningsSent {
   midpoint: boolean;
 }
 
+export interface IPendingEmailChange {
+  newEmail: string;
+  tokenHash: string;
+  expiresAt: Date;
+}
+
 export interface IUser extends Document {
   email: string;
   password: string | null;
+  // Email verification
+  emailVerified: boolean;
+  emailVerifiedAt: Date | null;
+  emailVerificationTokenHash: string | null;
+  emailVerificationExpiresAt: Date | null;
+  emailVerificationLastSentAt: Date | null;
+  pendingEmailChange: IPendingEmailChange | null;
   phone: string | null;
   businessEmail: string | null;
   firstName: string;
@@ -121,6 +134,15 @@ const TrialWarningsSentSchema = new Schema<ITrialWarningsSent>(
   { _id: false },
 );
 
+const PendingEmailChangeSchema = new Schema<IPendingEmailChange>(
+  {
+    newEmail: { type: String, required: true, lowercase: true, trim: true },
+    tokenHash: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 const UserSchema = new Schema<IUser>({
   email: {
     type: String,
@@ -131,6 +153,31 @@ const UserSchema = new Schema<IUser>({
   },
   password: {
     type: String,
+    default: null,
+  },
+  // Email verification
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null,
+  },
+  emailVerificationTokenHash: {
+    type: String,
+    default: null,
+  },
+  emailVerificationExpiresAt: {
+    type: Date,
+    default: null,
+  },
+  emailVerificationLastSentAt: {
+    type: Date,
+    default: null,
+  },
+  pendingEmailChange: {
+    type: PendingEmailChangeSchema,
     default: null,
   },
   phone: {

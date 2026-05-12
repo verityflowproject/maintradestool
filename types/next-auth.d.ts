@@ -13,6 +13,8 @@ declare module 'next-auth' {
       onboardingCompleted: boolean;
       teamSize: string;
       hasTeam: boolean;
+      // Email verification
+      emailVerified: boolean;
       // v2: identity fields
       accountType: 'owner' | 'member';
       parentOwnerId: string | null;
@@ -45,6 +47,8 @@ declare module 'next-auth/jwt' {
     subscriptionStatus?: string | null;
     subscriptionEndsAt?: string | null;
     teamSize?: string;
+    // Email verification
+    emailVerified?: boolean;
     // v2: identity fields
     accountType?: 'owner' | 'member';
     parentOwnerId?: string | null;

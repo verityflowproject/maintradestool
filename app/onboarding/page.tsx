@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { track } from "@vercel/analytics";
 import { ChevronLeft } from "lucide-react";
@@ -26,7 +26,11 @@ const TOTAL_STEPS = 9;
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status, update: updateSession } = useSession();
+
+  const verifiedBanner = searchParams?.get('verified') === '1';
+  const alreadyVerifiedBanner = searchParams?.get('already_verified') === '1';
 
   const [data, setData] = useState<OnboardingData>(defaultState);
   const [currentStep, setCurrentStep] = useState(0);
@@ -237,6 +241,24 @@ export default function OnboardingPage() {
 
   return (
     <main className="onboarding-container">
+      {(verifiedBanner || alreadyVerifiedBanner) && (
+        <div
+          style={{
+            background: 'rgba(52,211,153,0.12)',
+            borderBottom: '1px solid rgba(52,211,153,0.3)',
+            padding: '10px 20px',
+            fontSize: 13,
+            color: '#34d399',
+            fontWeight: 500,
+            textAlign: 'center',
+          }}
+          role="status"
+        >
+          {alreadyVerifiedBanner
+            ? 'Your email is already confirmed — sign in below.'
+            : 'Your email is confirmed! Sign in to start your trial.'}
+        </div>
+      )}
       {showChrome && (
         <div className="onboarding-progress" aria-hidden>
           <div

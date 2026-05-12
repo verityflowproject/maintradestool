@@ -146,6 +146,9 @@ export async function POST(
   if (!body?.email || typeof body.email !== 'string') {
     return NextResponse.json({ error: 'Missing email' }, { status: 400 });
   }
+  const { validateRequiredEmail } = await import('@/lib/utils/validators');
+  const emailErr = validateRequiredEmail(body.email.trim());
+  if (emailErr) return NextResponse.json({ error: emailErr }, { status: 400 });
 
   await dbConnect();
 

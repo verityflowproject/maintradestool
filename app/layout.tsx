@@ -7,6 +7,7 @@ import SessionProviderShell from "@/components/SessionProviderShell";
 import { ToastProvider } from "@/components/Toast/ToastProvider";
 import { UpgradeGateProvider } from "@/components/UpgradeGate/UpgradeGateProvider";
 import TrialBanner from "@/components/TrialBanner";
+import EmailVerificationBanner from "@/components/EmailVerificationBanner";
 import InstallPrompt from "@/components/InstallPrompt";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import {
@@ -186,6 +187,7 @@ export default async function RootLayout({
                 className="app-shell"
                 style={impersonation ? { paddingTop: 36 } : undefined}
               >
+                <EmailVerificationBanner />
                 <TrialBanner />
                 <div className="page-content">{children}</div>
                 <BottomNav />

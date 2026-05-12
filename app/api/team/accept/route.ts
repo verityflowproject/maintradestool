@@ -76,6 +76,9 @@ export async function POST(req: Request) {
     parentOwnerId: member.ownerUserId,
     linkedTeamMemberId: member._id,
     onboardingCompleted: true,
+    // Clicking the invite link from their inbox is proof of email ownership
+    emailVerified: true,
+    emailVerifiedAt: new Date(),
     // owner-only required fields are optional for members (Phase A 1a change)
   });
 

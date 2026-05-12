@@ -4,6 +4,13 @@ import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, Check, ChevronLeft, X, Eye, ExternalLink } from 'lucide-react';
 import { useToast } from '@/components/Toast/ToastProvider';
+import {
+  sanitizePhone,
+  formatPhoneAsYouType,
+  validatePhone,
+  validateSlug,
+  sanitizeSlug,
+} from '@/lib/utils/validators';
 
 interface BookingProfile {
   headline: string;
@@ -38,8 +45,10 @@ export default function BookingSettingsClient({
   const [editingSlug, setEditingSlug] = useState(false);
   const [slugInput, setSlugInput] = useState(initialSlug ?? '');
   const [slugStatus, setSlugStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+  const [slugFormatError, setSlugFormatError] = useState('');
   const [copied, setCopied] = useState(false);
   const [phone, setPhone] = useState(initialPhone);
+  const [phoneError, setPhoneError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [profile, setProfile] = useState<BookingProfile>({
@@ -87,13 +96,26 @@ export default function BookingSettingsClient({
     const candidate = slugInput.toLowerCase().trim();
     if (!candidate || candidate === slug) {
       setSlugStatus('idle');
+      setSlugFormatError('');
       return;
     }
+    // Client-side format check first
+    const { validateSlug: _validate } = await import('@/lib/utils/validators');
+    const fmtErr = _validate(candidate);
+    if (fmtErr) {
+      setSlugFormatError(fmtErr);
+      setSlugStatus('err');
+      return;
+    }
+    setSlugFormatError('');
     if (slugCheckTimer.current) clearTimeout(slugCheckTimer.current);
     const res = await fetch(`/api/booking/check-slug?slug=${encodeURIComponent(candidate)}`);
     if (res.ok) {
       const data = (await res.json()) as { available: boolean };
       setSlugStatus(data.available ? 'ok' : 'err');
+      if (!data.available) {
+        setSlugFormatError('That URL slug is already taken. Try adding your city or a number.');
+      }
     }
   }, [slugInput, slug]);
 
@@ -112,6 +134,9 @@ export default function BookingSettingsClient({
   }, []);
 
   const handleSave = useCallback(async () => {
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) { setPhoneError(phoneErr); return; }
+    setPhoneError('');
     setSaving(true);
     try {
       const body: Record<string, unknown> = {
@@ -188,17 +213,24 @@ export default function BookingSettingsClient({
               <div className="slug-edit-wrap">
                 <span className="slug-prefix">{APP_URL}/book/</span>
                 <input
+                  id="booking-slug"
+                  aria-invalid={slugStatus === 'err' || undefined}
+                  aria-describedby={slugFormatError ? 'booking-slug-err' : undefined}
                   className={`slug-input${slugStatus === 'ok' ? ' slug-ok' : slugStatus === 'err' ? ' slug-err' : ''}`}
                   value={slugInput}
                   onChange={(e) => {
-                    setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+                    setSlugInput(sanitizeSlug(e.target.value));
                     setSlugStatus('idle');
+                    setSlugFormatError('');
                   }}
                   onBlur={handleSlugBlur}
                   autoFocus
                 />
-                {slugStatus === 'ok' && <span className="slug-status-ok">✓ Available</span>}
-                {slugStatus === 'err' && <span className="slug-status-err">✗ Taken</span>}
+                {slugStatus === 'ok' && <span className="slug-status-ok">Available</span>}
+                {slugStatus === 'err' && <span className="slug-status-err">Unavailable</span>}
+                {slugFormatError && (
+                  <p id="booking-slug-err" className="field-error" role="alert">{slugFormatError}</p>
+                )}
               </div>
             ) : (
               <a
@@ -336,14 +368,26 @@ export default function BookingSettingsClient({
           />
         </div>
         {profile.showPhone && (
-          <input
-            className="input-field"
-            style={{ marginTop: 8 }}
-            type="tel"
-            placeholder="Your phone number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+          <div style={{ marginTop: 8 }}>
+            <input
+              id="booking-phone"
+              aria-invalid={!!phoneError || undefined}
+              aria-describedby={phoneError ? 'booking-phone-err' : undefined}
+              className={`input-field${phoneError ? ' input-field--error' : ''}`}
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={phone}
+              onChange={(e) => {
+                setPhone(formatPhoneAsYouType(sanitizePhone(e.target.value)));
+                if (phoneError) setPhoneError('');
+              }}
+              maxLength={25}
+              inputMode="tel"
+            />
+            {phoneError && (
+              <p id="booking-phone-err" className="field-error" role="alert">{phoneError}</p>
+            )}
+          </div>
         )}
 
         <div className="booking-toggle-row" style={{ marginTop: 12 }}>

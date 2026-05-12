@@ -9,6 +9,14 @@ import { sendEmail } from '@/lib/email/sendEmail';
 import { teamInviteTemplate } from '@/lib/email/templates';
 import { requirePerm } from '@/lib/auth/permissions';
 import { effectiveOwnerId } from '@/lib/auth/scope';
+import {
+  validatePhone,
+  validateEmail,
+  validateHourlyRate,
+  validatePersonName,
+  validateFreeTextShort,
+  stripNullBytes,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -59,15 +67,32 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const name = String(body?.name ?? '').trim();
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+  const nameErr = validatePersonName(name, 'Name');
+  if (nameErr) return NextResponse.json({ error: nameErr }, { status: 400 });
+
+  const phone = String(body?.phone ?? '').trim();
+  const email = String(body?.email ?? '').trim().toLowerCase();
+  const hourlyRate = body?.hourlyRate == null || body?.hourlyRate === '' ? '' : String(body.hourlyRate);
+
+  const phoneErr = validatePhone(phone);
+  if (phoneErr) return NextResponse.json({ error: phoneErr }, { status: 400 });
+  const emailErr = validateEmail(email);
+  if (emailErr) return NextResponse.json({ error: emailErr }, { status: 400 });
+  const rateErr = validateHourlyRate(hourlyRate);
+  if (rateErr) return NextResponse.json({ error: rateErr }, { status: 400 });
+
+  const notesVal = String(body?.notes ?? '');
+  const notesErr = validateFreeTextShort(notesVal, 'Notes');
+  if (notesErr) return NextResponse.json({ error: notesErr }, { status: 400 });
 
   await dbConnect();
   const member = await TeamMember.create({
     ownerUserId: ownerId,
     name,
-    email: String(body?.email ?? '').trim().toLowerCase(),
-    phone: String(body?.phone ?? '').trim(),
+    email,
+    phone,
     role: (body?.role as string) || 'tech',
-    hourlyRate: body?.hourlyRate == null || body?.hourlyRate === '' ? null : Number(body.hourlyRate),
+    hourlyRate: hourlyRate === '' ? null : Number(hourlyRate),
     color: (body?.color as string) || '#4A9EFF',
     notes: String(body?.notes ?? ''),
     active: true,

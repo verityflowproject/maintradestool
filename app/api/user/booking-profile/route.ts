@@ -5,6 +5,13 @@ import User from '@/lib/models/User';
 import type { IBookingProfile } from '@/lib/models/User';
 import { generateBookingSlug } from '@/lib/utils/bookingSlug';
 import { requireCapability } from '@/lib/requirePlan';
+import {
+  validateSlug,
+  validatePhone,
+  validateFreeTextShort,
+  stripNullBytes,
+  validationError,
+} from '@/lib/utils/validators';
 
 export const runtime = 'nodejs';
 
@@ -54,31 +61,53 @@ export async function PATCH(req: Request) {
 
   // Handle explicit slug update
   if ('bookingSlug' in body && body.bookingSlug) {
-    const slug = body.bookingSlug.toLowerCase().trim();
+    const slug = String(body.bookingSlug).toLowerCase().trim();
+    const slugErr = validateSlug(slug);
+    if (slugErr) return NextResponse.json(validationError('bookingSlug', slugErr), { status: 400 });
     // Check uniqueness (allow own slug)
     const conflict = await User.exists({
       bookingSlug: slug,
       _id: { $ne: user._id },
     });
     if (conflict) {
-      return NextResponse.json({ error: 'Slug already taken' }, { status: 409 });
+      return NextResponse.json(
+        validationError('bookingSlug', 'That URL slug is already taken. Try adding your city or a number — e.g. "johnsplumbing-dallas".'),
+        { status: 409 },
+      );
     }
     user.bookingSlug = slug;
   }
 
   // Handle phone
   if ('phone' in body) {
-    user.phone = body.phone ?? null;
+    const phoneVal = body.phone ? String(body.phone).trim() : null;
+    if (phoneVal) {
+      const phoneErr = validatePhone(phoneVal);
+      if (phoneErr) return NextResponse.json(validationError('phone', phoneErr), { status: 400 });
+    }
+    user.phone = phoneVal;
   }
 
   // Handle profile fields
   if (body.bookingProfile) {
     const p = body.bookingProfile;
-    if (p.headline !== undefined) user.bookingProfile.headline = p.headline;
-    if (p.bio !== undefined) user.bookingProfile.bio = p.bio;
+    if (p.headline !== undefined) {
+      const err = validateFreeTextShort(p.headline, 'Headline');
+      if (err) return NextResponse.json(validationError('bookingProfile.headline', err), { status: 400 });
+      user.bookingProfile.headline = stripNullBytes(p.headline);
+    }
+    if (p.bio !== undefined) {
+      const err = validateFreeTextShort(p.bio, 'Bio');
+      if (err) return NextResponse.json(validationError('bookingProfile.bio', err), { status: 400 });
+      user.bookingProfile.bio = stripNullBytes(p.bio);
+    }
     if (p.services !== undefined) user.bookingProfile.services = p.services;
-    if (p.serviceArea !== undefined) user.bookingProfile.serviceArea = p.serviceArea;
-    if (p.responseTime !== undefined) user.bookingProfile.responseTime = p.responseTime;
+    if (p.serviceArea !== undefined) {
+      user.bookingProfile.serviceArea = stripNullBytes(p.serviceArea.slice(0, 200));
+    }
+    if (p.responseTime !== undefined) {
+      user.bookingProfile.responseTime = stripNullBytes(p.responseTime.slice(0, 100));
+    }
     if (p.showPhone !== undefined) user.bookingProfile.showPhone = p.showPhone;
     if (p.showEmail !== undefined) user.bookingProfile.showEmail = p.showEmail;
   }

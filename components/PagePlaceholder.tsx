@@ -8,7 +8,7 @@ export default function PagePlaceholder({ title }: Props) {
       style={{
         minHeight: "100dvh",
         background: "var(--bg-void)",
-        padding: "calc(24px + env(safe-area-inset-top)) 24px 24px",
+        padding: "24px 24px 24px",
       }}
     >
       <h1

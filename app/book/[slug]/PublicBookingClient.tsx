@@ -2,6 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { MapPin, Phone, Mail, Clock, Eye } from 'lucide-react';
+import {
+  sanitizePhone,
+  formatPhoneAsYouType,
+  validatePhone,
+  validateEmail,
+  validateBookingDate,
+} from '@/lib/utils/validators';
 
 interface BookingProfile {
   headline: string;
@@ -74,7 +81,9 @@ export default function PublicBookingClient({
   const set = useCallback(
     (field: keyof FormState) =>
       (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        setForm((f) => ({ ...f, [field]: e.target.value }));
+        let value = e.target.value;
+        if (field === 'phone') value = formatPhoneAsYouType(sanitizePhone(value));
+        setForm((f) => ({ ...f, [field]: value }));
         setError('');
       },
     [],
@@ -85,8 +94,16 @@ export default function PublicBookingClient({
       e.preventDefault();
       if (previewMode) return;
       if (!form.name.trim() || !form.phone.trim() || !form.serviceNeeded.trim()) {
-        setError('Please fill in your name, phone, and what you need done.');
+        setError('Please fill in your name, phone number, and what you need done.');
         return;
+      }
+      const phoneErr = validatePhone(form.phone);
+      if (phoneErr) { setError(phoneErr); return; }
+      const emailErr = validateEmail(form.email);
+      if (emailErr) { setError(emailErr); return; }
+      if (form.preferredDate) {
+        const dateErr = validateBookingDate(form.preferredDate);
+        if (dateErr) { setError(dateErr); return; }
       }
       setSubmitting(true);
       setError('');
@@ -269,10 +286,13 @@ export default function PublicBookingClient({
               <input
                 className="input-field"
                 type="tel"
-                placeholder="Phone number *"
+                placeholder="Phone number * — like (555) 123-4567"
                 value={form.phone}
                 onChange={set('phone')}
+                maxLength={25}
+                inputMode="tel"
                 required
+                aria-label="Phone number"
               />
             </div>
             <div className="booking-form__field">
@@ -282,6 +302,8 @@ export default function PublicBookingClient({
                 placeholder="Email (optional)"
                 value={form.email}
                 onChange={set('email')}
+                maxLength={254}
+                inputMode="email"
               />
             </div>
             <div className="booking-form__field">
