@@ -37,6 +37,16 @@ export interface IPendingEmailChange {
   expiresAt: Date;
 }
 
+export interface IAcquisitionSource {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+  referrer?: string;
+  landedAt?: string;
+}
+
 export interface IUser extends Document {
   email: string;
   password: string | null;
@@ -87,6 +97,7 @@ export interface IUser extends Document {
   bookingEnabled: boolean;
   bookingProfile: IBookingProfile;
   teamPreferences: ITeamPreferences;
+  acquisitionSource: IAcquisitionSource | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -373,6 +384,10 @@ const UserSchema = new Schema<IUser>({
       showAvatarsOnJobs: true,
       requireAssignmentBeforeInvoice: false,
     }),
+  },
+  acquisitionSource: {
+    type: Schema.Types.Mixed,
+    default: null,
   },
   createdAt: {
     type: Date,

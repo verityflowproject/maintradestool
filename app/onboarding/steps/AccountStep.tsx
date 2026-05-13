@@ -68,6 +68,15 @@ export default function AccountStep({
 
     setSubmitting(true);
 
+    // Read marketing attribution stored by the landing page UTMCapture component
+    let acquisitionSource: Record<string, string> | null = null;
+    try {
+      const stored = sessionStorage.getItem("vf_utm");
+      if (stored) acquisitionSource = JSON.parse(stored) as Record<string, string>;
+    } catch {
+      // sessionStorage unavailable — silently skip
+    }
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -77,6 +86,7 @@ export default function AccountStep({
           password,
           hourlyRate: Number(data.hourlyRate),
           partsMarkup: Number(data.partsMarkup),
+          ...(acquisitionSource ? { acquisitionSource } : {}),
         }),
       });
 

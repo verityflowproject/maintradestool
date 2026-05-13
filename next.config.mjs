@@ -10,6 +10,31 @@ const withSerwist = withSerwistInit({
 const nextConfig = {
   reactStrictMode: true,
 
+  async rewrites() {
+    return [
+      // Vanity URLs for ad / podcast attribution — UTM params are passed
+      // server-side; the browser address bar shows the clean vanity URL.
+      {
+        source: "/podcast",
+        destination: "/?utm_source=podcast&utm_medium=audio",
+      },
+      {
+        source: "/plumbers",
+        destination:
+          "/?utm_source=direct&utm_medium=trade&utm_content=plumbers",
+      },
+      {
+        source: "/hvac",
+        destination: "/?utm_source=direct&utm_medium=trade&utm_content=hvac",
+      },
+      {
+        source: "/electricians",
+        destination:
+          "/?utm_source=direct&utm_medium=trade&utm_content=electricians",
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

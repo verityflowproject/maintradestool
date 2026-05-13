@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 
+const HIDDEN_EXACT = ["/"];
+
 const HIDDEN_PREFIXES = [
   "/onboarding",
   "/jobs/new/voice",
@@ -17,6 +19,7 @@ const HIDDEN_PREFIXES = [
 export default function SettingsCornerButton() {
   const pathname = usePathname() ?? "";
 
+  if (HIDDEN_EXACT.includes(pathname)) return null;
   if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(p))) {
     return null;
   }

@@ -116,6 +116,15 @@ export async function POST(req: Request) {
   const region = body.region as string;
   const invoiceMethod = body.invoiceMethod as string;
 
+  // Optional marketing attribution — passed from sessionStorage by the signup form
+  const rawAcquisition = body.acquisitionSource;
+  const acquisitionSource =
+    rawAcquisition &&
+    typeof rawAcquisition === "object" &&
+    !Array.isArray(rawAcquisition)
+      ? (rawAcquisition as Record<string, string>)
+      : null;
+
   try {
     await dbConnect();
 
@@ -150,6 +159,7 @@ export async function POST(req: Request) {
       region,
       invoiceMethod,
       onboardingCompleted: true,
+      ...(acquisitionSource ? { acquisitionSource } : {}),
       // Manual signups start unverified; trial countdown is paused until confirmed
       emailVerified: false,
       // Trial window is opened fresh when the user confirms their email.

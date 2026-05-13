@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -12,6 +13,7 @@ import {
   UserCircle,
   Clock,
   Plus,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { usePlanState } from "@/lib/hooks/usePlanState";
@@ -149,6 +151,18 @@ export default function BottomNav() {
 
   return (
     <nav className="bottom-nav" aria-label="Primary">
+      {/* Brand header — only visible in the desktop sidebar */}
+      <div className="sidebar-brand">
+        <Image
+          src="/logo/verityflow-icon.png"
+          alt="VerityFlow"
+          width={28}
+          height={28}
+          style={{ borderRadius: 6 }}
+        />
+        <span className="sidebar-brand__name">VerityFlow</span>
+      </div>
+
       <div className="bottom-nav__side bottom-nav__side--left">
         {tabsForRole.left.map((tab) => (
           <NavButton key={tab.href} tab={tab} active={isActive(tab.href)} />
@@ -181,6 +195,18 @@ export default function BottomNav() {
           <NavButton key={tab.href} tab={tab} active={isActive(tab.href)} />
         ))}
       </div>
+
+      {/* Settings link — only visible in the desktop sidebar */}
+      <Link
+        href="/settings"
+        className={`sidebar-settings-link nav-item${
+          isActive("/settings") ? " active" : ""
+        }`}
+        aria-label="Settings"
+      >
+        <Settings size={22} strokeWidth={isActive("/settings") ? 2.2 : 1.8} />
+        <span>Settings</span>
+      </Link>
     </nav>
   );
 }

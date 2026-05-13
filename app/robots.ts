@@ -1,32 +1,28 @@
-import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: '*',
-        allow: [
-          '/',
-          '/onboarding',
-          '/book/',
-          '/invoice/',
-        ],
+        userAgent: "*",
+        allow: ["/", "/contact", "/legal/", "/help"],
         disallow: [
-          '/dashboard',
-          '/jobs',
-          '/invoices',
-          '/calendar',
-          '/customers',
-          '/requests',
-          '/settings',
-          '/admin',
-          '/billing-expired',
-          '/api/',
-          '/offline',
+          "/dashboard",
+          "/jobs",
+          "/customers",
+          "/invoices",
+          "/calendar",
+          "/requests",
+          "/settings",
+          "/feature-board",
+          "/team",
+          "/time",
+          "/onboarding",
+          "/admin",
+          "/api/",
         ],
       },
     ],
-    sitemap: 'https://verityflow.io/sitemap.xml',
-    host: 'https://verityflow.io',
+    sitemap: "https://verityflow.io/sitemap.xml",
   };
 }
