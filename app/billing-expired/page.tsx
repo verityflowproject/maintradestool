@@ -12,10 +12,11 @@ import MemberBillingExpiredClient from './MemberBillingExpiredClient';
 export default async function BillingExpiredPage({
   searchParams,
 }: {
-  searchParams: { reason?: string };
+  searchParams: Promise<{ reason?: string }>;
 }) {
+  const params = await searchParams;
   const session = await auth();
-  if (!session?.user?.id) redirect('/onboarding');
+  if (!session?.user?.id) redirect('/signin');
 
   await dbConnect();
 
@@ -41,7 +42,7 @@ export default async function BillingExpiredPage({
       createdAt: Date;
     } | null>();
 
-  if (!user) redirect('/onboarding');
+  if (!user) redirect('/signin');
 
   const planState = getPlanState(user);
 
@@ -54,7 +55,7 @@ export default async function BillingExpiredPage({
     Invoice.countDocuments({ userId: session.user.id }),
   ]);
 
-  const reason = searchParams.reason === 'past_due' ? 'past_due' : 'expired';
+  const reason = params.reason === 'past_due' ? 'past_due' : 'expired';
   const hasStripeCustomer = !!user.stripeCustomerId;
 
   return (

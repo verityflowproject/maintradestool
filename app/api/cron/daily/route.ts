@@ -163,6 +163,9 @@ export async function GET(req: NextRequest) {
   }
 
   // Task 4 — Expired trials
+  // Filter excludes users who already have plan='expired' so the trialExpired
+  // email is only sent ONCE (previously this loop forgot to user.save() the
+  // flipped plan, which caused the same email to fire every day forever).
   try {
     const expiredUsers = await User.find({
       plan: 'trial',
@@ -176,6 +179,14 @@ export async function GET(req: NextRequest) {
       try {
         user.plan = 'expired';
         user.bookingEnabled = false;
+        // Stamp the access-ended date so win-back (Task 5) can find this user
+        // 30 days later. The field is overloaded as "when access ended" for
+        // both cancelled-subscription and expired-trial users.
+        if (!user.subscriptionEndsAt) {
+          user.subscriptionEndsAt = user.trialEndsAt;
+        }
+        await user.save();
+
         await sendEmail({
           to: user.email,
           ...trialExpiredTemplate(user),
