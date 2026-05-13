@@ -121,8 +121,8 @@ export default async function VerifyPage({ searchParams }: Props) {
   ) {
     const dest =
       result.status === 'success'
-        ? '/onboarding?verified=1'
-        : '/onboarding?already_verified=1';
+        ? '/signin?verified=1'
+        : '/signin?already_verified=1';
     redirect(dest);
   }
 

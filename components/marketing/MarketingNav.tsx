@@ -56,7 +56,7 @@ export default function MarketingNav({
             </Link>
           ) : (
             <>
-              <Link href="/onboarding?signin=1" className="mk-nav__signin">
+              <Link href="/signin" className="mk-nav__signin">
                 Sign in
               </Link>
               <Link
@@ -117,7 +117,7 @@ export default function MarketingNav({
             ) : (
               <>
                 <Link
-                  href="/onboarding?signin=1"
+                  href="/signin"
                   className="mk-nav__mobile-link"
                   onClick={closeMenu}
                 >

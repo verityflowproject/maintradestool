@@ -7,6 +7,7 @@ import { Settings } from "lucide-react";
 const HIDDEN_EXACT = ["/"];
 
 const HIDDEN_PREFIXES = [
+  "/signin",
   "/onboarding",
   "/jobs/new/voice",
   "/invoice/",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import SignInModal from '@/components/SignInModal';
 
@@ -71,6 +72,14 @@ export default function WelcomeStep({ advanceStep }: WelcomeStepProps) {
           >
             Get Started
           </button>
+        </div>
+
+        {/* Already have an account? */}
+        <div className="welcome-item stagger-5">
+          <Link href="/signin" className="welcome-signin" style={{ textDecoration: 'none' }}>
+            Already have an account?{' '}
+            <span style={{ fontWeight: 500 }}>Sign in</span>
+          </Link>
         </div>
       </div>
 

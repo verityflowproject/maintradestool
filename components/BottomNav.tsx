@@ -130,6 +130,7 @@ export default function BottomNav() {
   // so the path check runs before the session check and avoids a flash on load.
   if (
     pathname === "/" ||
+    pathname.startsWith("/signin") ||
     pathname.startsWith("/onboarding") ||
     pathname === "/jobs/new/voice" ||
     isJobVoicePage ||

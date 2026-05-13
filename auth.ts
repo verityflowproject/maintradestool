@@ -11,7 +11,7 @@ import { isTeamSize } from '@/lib/team/hasTeam';
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
-  pages: { signIn: '/onboarding', error: '/onboarding' },
+  pages: { signIn: '/signin', error: '/signin' },
 
   providers: [
     Credentials({

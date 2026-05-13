@@ -106,7 +106,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isProtected && !token) {
-    return NextResponse.redirect(new URL('/onboarding', req.url));
+    return NextResponse.redirect(new URL('/signin', req.url));
   }
 
   if (isProtected && token && token.onboardingCompleted !== true) {

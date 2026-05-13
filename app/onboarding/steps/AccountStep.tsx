@@ -207,6 +207,17 @@ export default function AccountStep({
         {submitting ? "Creating account…" : "Create My Account →"}
       </button>
 
+      <p className="signin-switch" style={{ marginTop: 16, textAlign: "center" }}>
+        Already have an account?{" "}
+        <button
+          type="button"
+          className="signin-switch-link"
+          onClick={() => setSignInOpen(true)}
+        >
+          Sign in
+        </button>
+      </p>
+
       {existingMode === "password" && (
         <div className="account-recovery">
           <p className="field-error" style={{ marginBottom: 8 }}>
