@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Syne, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import BottomNav from "@/components/BottomNav";
 import SettingsCornerButton from "@/components/SettingsCornerButton";
@@ -17,10 +17,10 @@ import {
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const syne = Syne({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-syne",
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-syne", // CSS var kept for backward compat — all existing styles unchanged
   display: "swap",
 });
 
@@ -145,7 +145,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
+      className={`${plusJakartaSans.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
     >
       <body>
         <script
